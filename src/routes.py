@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import os
 
 from aiohttp import web
@@ -20,10 +21,16 @@ async def version(req):
     output = await loop.run_in_executor(None, os.popen, program)
     return web.Response(text=output.read())
 
-# TODO: use github webhook
-@routes.post('/gitlab-webhook')
+@routes.post('/github-webhook')
 async def gitlab_webhook(req):
-    if req.headers.get('X-Gitlab-Token') != req.app['config']['gitlab-webhook-token']:
+    header_signature = req.headers.get('X-Hub-Signature') or ''
+    secret = req.app['config']['github-webhook-token'] or ''
+
+    sha_name, signature = header_signature.split('=')
+
+    mac = hmac.new(secret.encode(), msg=await req.read(), digestmod='sha1')
+
+    if not hmac.compare_digest(mac.hexdigest(), signature):
         return web.Response(text='Permission denied', status=401)
 
     git_log.info('Received update from webhook, trying to pull ...')
