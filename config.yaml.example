@@ -1,0 +1,11 @@
+app-port: 80
+
+gitlab-webhook-token:
+        "TOKEN"
+
+error-reporter:
+        targets: ["EMAIL"]
+        smtp:
+                host: "HOST"
+                login: "LOGIN"
+		password: "PASSWORD"
