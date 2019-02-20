@@ -24,7 +24,7 @@ async def version(req):
 @routes.post('/github-webhook')
 async def gitlab_webhook(req):
     header_signature = req.headers.get('X-Hub-Signature') or ''
-    secret = req.app['config']['github-webhook-token'] or ''
+    secret = req.app['config']['github-webhook-token'] or '='
 
     sha_name, signature = header_signature.split('=')
 
