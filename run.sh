@@ -4,7 +4,7 @@ while true; do
     # git reset --hard
     git pull origin master
 
-    python3 src/app.py
+    python3 src/app.py "$@"
     exit_code=$?
 
     if [ $exit_code == 2 ]

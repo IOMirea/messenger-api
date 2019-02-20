@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 import logging
 
 from aiohttp import web
@@ -18,6 +19,9 @@ else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
+argparser = argparse.ArgumentParser(description="IOMirea server")
+argparser.add_argument('-d', '--debug', action='store_true', help='run server in debug mode')
+
 @web.middleware
 async def middleware(req, handler):
     try:
@@ -33,6 +37,8 @@ async def middleware(req, handler):
 
 
 if __name__ == '__main__':
+    args = argparser.parse_args()
+
     app = web.Application(middlewares=[middleware])
     app.router.add_routes(routes)
 
@@ -40,4 +46,7 @@ if __name__ == '__main__':
 
     setup_logging(app)
 
-    web.run_app(app, port=app['config']['app-port'])
+    web.run_app(
+        app, port=app['config']['app-port'],
+        host='127.0.0.1' if args.debug else '0.0.0.0'
+    )
