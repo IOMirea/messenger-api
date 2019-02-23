@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS versions (
+	version SMALLINT NOT NULL,
+	name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+	id BIGINT PRIMARY KEY NOT NULL,
+	channel_id BIGINT NOT NULL,
+	author_id BIGINT NOT NULL,
+	content VARCHAR(2048) NOT NULL,
+	encrypted BOOL NOT NULL DEFAULT false,
+	pinned BOOL NOT NULL DEFAULT false,
+	edited BOOL NOT NULL DEFAULT false,
+	deleted BOOL NOT NULL DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS messages_channel_index ON messages(channel_id);
+
+CREATE TABLE IF NOT EXISTS users (
+	id BIGINT PRIMARY KEY NOT NULL,
+	channel_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
+	last_read_message_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
+	bot BOOL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS channels (
+	id BIGINT PRIMARY KEY NOT NULL,
+	name VARCHAR(128),
+	user_ids BIGINT[] NOT NULL,
+	pinned_ids BIGINT[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS files (
+	id BIGINT PRIMARY KEY NOT NULL,
+	message_id BIGINT NOT NULL,
+	channel_id BIGINT NOT NULL,
+	name VARCHAR(128) NOT NULL,
+	mime SMALLINT NOT NULL,
+	hash UUID NOT NULL
+);

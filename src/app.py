@@ -8,6 +8,7 @@ from reporter import send_report
 from routes import routes
 from config import Config
 from log import setup_logging
+from postgresql import create_postgres_connection, close_postgres_connection
 
 
 try:
@@ -45,6 +46,9 @@ if __name__ == '__main__':
     app['config'] = Config('config.yaml')
 
     setup_logging(app)
+
+    app.on_startup.append(create_postgres_connection)
+    app.on_cleanup.append(close_postgres_connection)
 
     web.run_app(
         app, port=app['config']['app-port'],
