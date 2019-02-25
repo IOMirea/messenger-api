@@ -28,29 +28,29 @@ async def middleware(req, handler):
     try:
         resp = await handler(req)
     except web.HTTPException as e:
-        raise
+        return web.json_response({'message': e.text}, status=e.status)
     except Exception as e:
         log = logging.getLogger('aiohttp.server')
         log.exception('Error handling request', exc_info=e, extra={'request': req})
-        return web.Response(text='Internal server error.', status=500)
+        return web.json_response({'message': 'Internal server error.'}, status=500)
 
     return resp
 
 
 if __name__ == '__main__':
-    args = argparser.parse_args()
-
     app = web.Application(middlewares=[middleware])
-    app.router.add_routes(routes)
 
+    app['args'] = argparser.parse_args()
     app['config'] = Config('config.yaml')
 
-    setup_logging(app)
+    app.router.add_routes(routes)
 
     app.on_startup.append(create_postgres_connection)
     app.on_cleanup.append(close_postgres_connection)
 
+    setup_logging(app)
+
     web.run_app(
         app, port=app['config']['app-port'],
-        host='127.0.0.1' if args.debug else '0.0.0.0'
+        host='127.0.0.1' if app['args'].debug else '0.0.0.0'
     )
