@@ -1,11 +1,11 @@
 app-port: 80
 
 postgresql:
-	user: "USER"
-	database: "DATABASE"
-	password: "PASSWORD"
-	host: "localhost"
-	port: 5432
+        user: "USER"
+        database: "DATABASE"
+        password: "PASSWORD"
+        host: "localhost"
+        port: 5432
 
 gitlab-webhook-token:
         "TOKEN"
@@ -15,4 +15,4 @@ error-reporter:
         smtp:
                 host: "HOST"
                 login: "LOGIN"
-		password: "PASSWORD"
+                password: "PASSWORD"
