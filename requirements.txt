@@ -1,0 +1,4 @@
+aiohttp==3.4.4
+uvloop==0.12.1
+asyncpg==0.18.3
+PyYAML==3.13
