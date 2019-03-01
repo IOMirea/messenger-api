@@ -1,5 +1,7 @@
 app-port: 80
 
+config-version: 0
+
 postgresql:
         user: "USER"
         database: "DATABASE"

@@ -3,7 +3,7 @@ from utils import migrate_log
 
 
 class Migration0(Migration):
-    async def _up(self, latest):
+    async def _up(self, latest, config):
         filename = 'schema.sql'
 
         migrate_log(f'Creating database db from file {filename}')
