@@ -81,6 +81,7 @@ async def perform_config_migration(config):
             migrate_log(f'Finished migration {m.version} in {round((end - begin) * 1000, 3)}ms')
     except Exception as e:
         migrate_log(f'Exception: {e}')
+        sys.exit(1)
 
     migrate_log(f'Successfully finished {len(migrations)} config migrations')
 
@@ -120,6 +121,7 @@ async def perform_db_migration(config, connection):
             migrate_log(f'Finished migration {m.version} in {round((end - begin) * 1000, 3)}ms')
     except Exception as e:
         migrate_log(f'Exception: {e}')
+        sys.exit(1)
     finally:
         await connection.close()
 
