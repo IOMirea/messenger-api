@@ -20,7 +20,6 @@ class DBObject:
     _keys = {}
 
     def __init__(self, data):
-        self._data = data
         self._keys.update({'id': 'id'})
 
         self._data = {pk: data[dk] for dk, pk in self._keys.items()}
