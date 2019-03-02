@@ -14,7 +14,7 @@ while true; do
         break
     fi
 
-    python3 src/app.py "$@"
+    python3 iomirea/app.py "$@"
     exit_code=$?
 
     if [ $exit_code == 2 ]

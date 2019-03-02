@@ -1,20 +1,24 @@
 app-port: 80
-
-config-version: 0
-
-postgresql:
-        user: "USER"
-        database: "DATABASE"
-        password: "PASSWORD"
-        host: "localhost"
-        port: 5432
-
-gitlab-webhook-token:
-        "TOKEN"
-
+config-version: 1
 error-reporter:
-        targets: ["EMAIL"]
-        smtp:
-                host: "HOST"
-                login: "LOGIN"
-                password: "PASSWORD"
+  smtp:
+    host: SMTP-HOST
+    login: SMTP-LOGIN
+    password: SMTP-PASSWORD
+  targets:
+  - EMAIL
+github-webhook-token: GITHUB-TOKEN
+logging:
+  basic-log-format: '[{asctime} {levelname}]{name}: '
+  basic-time-format: '%I:%M:%S'
+  common-log-file: common.log
+  error-log-file: errors.log
+  logging-folder: logs
+  migration-log-file: migration.log
+  server-log-file: server.log
+postgresql:
+  database: POSTGRES-DATABASE
+  host: localhost
+  password: POSTGRES-PASSWORD
+  port: 5432
+  user: POSTGRES-USER

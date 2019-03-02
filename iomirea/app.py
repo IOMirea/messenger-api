@@ -7,8 +7,8 @@ from aiohttp import web
 from reporter import send_report
 from routes import routes
 from config import Config
-from log import setup_logging
-from postgresql import create_postgres_connection, close_postgres_connection
+from log import setup_logging, server_log
+from db import create_postgres_connection, close_postgres_connection
 
 
 try:
@@ -30,8 +30,7 @@ async def middleware(req, handler):
     except web.HTTPException as e:
         return web.json_response({'message': e.text}, status=e.status)
     except Exception as e:
-        log = logging.getLogger('aiohttp.server')
-        log.exception('Error handling request', exc_info=e, extra={'request': req})
+        server_log.exception('Error handling request', exc_info=e, extra={'request': req})
         return web.json_response({'message': 'Internal server error.'}, status=500)
 
     return resp
@@ -49,6 +48,8 @@ if __name__ == '__main__':
     app.on_cleanup.append(close_postgres_connection)
 
     setup_logging(app)
+
+    server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
 
     web.run_app(
         app, port=app['config']['app-port'],

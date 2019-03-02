@@ -6,7 +6,7 @@ from aiohttp import web
 
 from log import git_log
 from updater import updater
-from postgresql import User, Channel, Message, File
+from db import User, Channel, Message, File
 from utils import ensure_existance
 
 

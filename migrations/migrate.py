@@ -7,7 +7,7 @@ import importlib
 
 import asyncpg
 
-from utils import migrate_log
+from utils import init_logger, migrate_log
 
 CONFIG_PATH = 'config.yaml'
 
@@ -132,7 +132,9 @@ async def main():
     with open(CONFIG_PATH, 'r') as f:
         config = yaml.load(f)
 
+    init_logger(config)
     new_config = await perform_config_migration(config)
+    init_logger(new_config)
 
     db_connection = await asyncpg.connect(**new_config['postgresql'])
 
