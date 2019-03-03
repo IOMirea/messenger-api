@@ -24,20 +24,22 @@ argparser = argparse.ArgumentParser(description="IOMirea server")
 argparser.add_argument('-d', '--debug', action='store_true', help='run server in debug mode')
 
 @web.middleware
-async def middleware(req, handler):
+async def error_middleware(req, handler):
     try:
-        resp = await handler(req)
+        return await handler(req)
     except web.HTTPException as e:
-        return web.json_response({'message': e.text}, status=e.status)
+        message = e.text
+        status = e.status
     except Exception as e:
         server_log.exception('Error handling request', exc_info=e, extra={'request': req})
-        return web.json_response({'message': 'Internal server error.'}, status=500)
+        message = 'Internal server error'
+        status = 500
 
-    return resp
+    return web.json_response({'message': message}, status=status)
 
 
 if __name__ == '__main__':
-    app = web.Application(middlewares=[middleware])
+    app = web.Application(middlewares=[error_middleware])
 
     app['args'] = argparser.parse_args()
     app['config'] = Config('config.yaml')

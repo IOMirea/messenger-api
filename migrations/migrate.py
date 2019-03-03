@@ -28,7 +28,7 @@ async def get_db_version(connection):
 def get_migrations(path, config, connection=None):
     migrations = []
 
-    package_path_base = '.'.join(path.split(os.path.sep)[1:]) + '.'
+    package_path_base = f'{".".join(path.split(os.path.sep)[1:])}.'
     for entry in os.listdir(path):
         if not entry.endswith('.py'):
             continue
