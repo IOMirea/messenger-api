@@ -1,11 +1,12 @@
 import asyncio
 import argparse
-import logging
 
 from aiohttp import web
 
-from reporter import send_report
-from routes import routes
+from routes.api.v0 import routes as api_v0_routes
+from routes.oauth2 import routes as oauth2_routes
+from routes.misc import routes as misc_routes
+
 from config import Config
 from log import setup_logging, server_log
 from db import create_postgres_connection, close_postgres_connection
@@ -44,12 +45,38 @@ if __name__ == '__main__':
     app['args'] = argparser.parse_args()
     app['config'] = Config('config.yaml')
 
-    app.router.add_routes(routes)
-
     app.on_startup.append(create_postgres_connection)
     app.on_cleanup.append(close_postgres_connection)
 
     setup_logging(app)
+
+    app.router.add_routes(misc_routes)
+
+    # OAuth2 subapp
+    OAuth2app = web.Application()
+    OAuth2app['args'] = app['args']
+    OAuth2app['config'] = app['config']
+
+    OAuth2app.on_startup.append(create_postgres_connection)
+    OAuth2app.on_cleanup.append(close_postgres_connection)
+
+    OAuth2app.add_routes(oauth2_routes)
+
+    app.add_subapp('/oauth/', OAuth2app)
+
+    # API subapps
+    APIv0app = web.Application()
+
+    APIv0app['args'] = app['args']
+    APIv0app['config'] = app['config']
+
+    APIv0app.on_startup.append(create_postgres_connection)
+    APIv0app.on_cleanup.append(close_postgres_connection)
+
+    APIv0app.add_routes(api_v0_routes)
+
+    app.add_subapp('/api/v0/', APIv0app)
+    # app.add_subapp('/api/', APIv0app)  # defaults to latest API version
 
     server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
 
