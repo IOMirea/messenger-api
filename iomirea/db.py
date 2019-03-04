@@ -2,13 +2,13 @@ import asyncpg
 
 
 async def create_postgres_connection(app):
-    connection = await asyncpg.connect(
-        **app['config'].postgresql)
+    connection = await asyncpg.connect(**app["config"].postgresql)
 
-    app['pg_conn'] = connection
+    app["pg_conn"] = connection
+
 
 async def close_postgres_connection(app):
-    await app['pg_conn'].close()
+    await app["pg_conn"].close()
 
 
 class DBObject:
@@ -20,7 +20,7 @@ class DBObject:
     _keys = {}
 
     def __init__(self, data):
-        self._keys.update({'id': 'id'})
+        self._keys.update({"id": "id"})
 
         self._data = {pk: data[dk] for dk, pk in self._keys.items()}
 
@@ -36,23 +36,29 @@ class DBObject:
     def json(self):
         return self._data
 
+
 # just a quick sketch, not full list of properties
 class User(DBObject):
-    _keys = {'bot': 'bot'}
+    _keys = {"bot": "bot"}
+
 
 class Channel(DBObject):
-    _keys = {
-        'name': 'name', 'user_ids': 'user_ids', 'pinned_ids': 'pinned_ids'
-    }
+    _keys = {"name": "name", "user_ids": "user_ids", "pinned_ids": "pinned_ids"}
+
 
 class Message(DBObject):
     _keys = {
-        'author_id': 'author_id', 'content': 'content', 'edited': 'edited',
-        'pinned': 'pinned'
+        "author_id": "author_id",
+        "content": "content",
+        "edited": "edited",
+        "pinned": "pinned",
     }
+
 
 class File(DBObject):
     _keys = {
-        'name': 'name', 'message_id': 'message_id',
-        'channel_id': 'channel_id', 'mime': 'mime'
+        "name": "name",
+        "message_id": "message_id",
+        "channel_id": "channel_id",
+        "mime": "mime",
     }

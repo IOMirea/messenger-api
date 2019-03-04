@@ -4,23 +4,22 @@ import asyncio
 
 
 class Config:
-
     def __init__(self, config_file, **options):
         self.name = config_file
 
         try:
-            with open(self.name, 'r') as f:
+            with open(self.name, "r") as f:
                 self._config = yaml.load(f)
         except FileNotFoundError:
             self._config = {}
 
-        self.loop = options.pop('loop', asyncio.get_event_loop())
+        self.loop = options.pop("loop", asyncio.get_event_loop())
         self.lock = asyncio.Lock()
 
     def _dump(self):
-        temp = self.name + '.temp'
+        temp = self.name + ".temp"
 
-        with open(temp, 'w', encoding='utf-8') as tmp:
+        with open(temp, "w", encoding="utf-8") as tmp:
             yaml.dump(self._config.copy(), tmp)
 
         os.replace(temp, self.name)

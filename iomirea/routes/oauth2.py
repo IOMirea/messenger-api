@@ -3,16 +3,17 @@ from aiohttp import web
 
 routes = web.RouteTableDef()
 
-@routes.post('/authorize')
+
+@routes.post("/authorize")
 async def token(req):
-    return web.json_response({'message': 'authorize: WIP'})
+    return web.json_response({"message": "authorize: WIP"})
 
 
-@routes.post('/token')
+@routes.post("/token")
 async def token(req):
-    return web.json_response({'message': 'token: WIP'})
+    return web.json_response({"message": "token: WIP"})
 
 
-@routes.post('/revoke')
+@routes.post("/revoke")
 async def token(req):
-    return web.json_response({'message': 'revoke: WIP'})
+    return web.json_response({"message": "revoke: WIP"})

@@ -10,7 +10,7 @@ class Migration:
     async def _up(self, latest, config: bool):
         await self.up(latest)
         if config:
-            self.config['config-version'] = self.version
+            self.config["config-version"] = self.version
             return self.config
 
         await self.conn.execute(
@@ -18,13 +18,12 @@ class Migration:
         )
 
     async def up(self, latest):
-        raise NotImplementedError(
-            f'Migration {self.version}: Not possible to go up')
+        raise NotImplementedError(f"Migration {self.version}: Not possible to go up")
 
     async def _down(self, config: bool):
         await self.down()
         if config:
-            self.config['config_version'] = self.version
+            self.config["config_version"] = self.version
             return self.config
 
         await self.conn.execute(
@@ -32,5 +31,4 @@ class Migration:
         )
 
     async def down(self):
-        raise NotImplementedError(
-            f'Migration {self.version}: Not possible to go down')
+        raise NotImplementedError(f"Migration {self.version}: Not possible to go down")
