@@ -1,5 +1,9 @@
 import asyncio
 import argparse
+import ssl
+
+import jinja2
+import aiohttp_jinja2
 
 from aiohttp import web
 
@@ -28,9 +32,17 @@ argparser.add_argument('-d', '--debug', action='store_true', help='run server in
 async def error_middleware(req, handler):
     try:
         return await handler(req)
+    except (web.HTTPSuccessful, web.HTTPRedirection):
+        raise
     except web.HTTPException as e:
         status = e.status
         message = e.text
+    except (web.HTTPMethodNotAllowed, asyncio.CancelledError):
+        if req.config_dict['args'].debug:
+            raise
+
+        status = 500
+        message = f'{status} Internal server error'
     except Exception as e:
         server_log.exception('Error handling request', exc_info=e, extra={'request': req})
         status = 500
@@ -48,8 +60,6 @@ if __name__ == '__main__':
     app.on_startup.append(create_postgres_connection)
     app.on_cleanup.append(close_postgres_connection)
 
-    setup_logging(app)
-
     app.router.add_routes(misc_routes)
 
     # OAuth2 subapp
@@ -65,9 +75,20 @@ if __name__ == '__main__':
     app.add_subapp('/api/v0/', APIv0app)
     # app.add_subapp('/api/', APIv0app)  # defaults to latest API version
 
+    # logging setup
+    setup_logging(app)
+
+    # templates setup
+    aiohttp_jinja2.setup(
+        app, loader=jinja2.FileSystemLoader('iomirea/templates'))
+
+    # SSL setup
+    # ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # ssl_context.load_cert_chain('iomirea.ml.crt', 'iomirea.ml.key')
+
     server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
 
     web.run_app(
-        app, port=app['config']['app-port'],
+        app, port=app['config']['app-port'], # ssl_context=ssl_context,
         host='127.0.0.1' if app['args'].debug else '0.0.0.0'
     )

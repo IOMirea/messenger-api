@@ -2,6 +2,8 @@ import os
 import hmac
 import asyncio
 
+import aiohttp_jinja2
+
 from aiohttp import web
 
 from log import git_log
@@ -12,16 +14,20 @@ routes = web.RouteTableDef()
 
 
 @routes.get('/')
+@aiohttp_jinja2.template('index.html')
 async def index(req):
-    return web.Response(text='It works')
+    return {}
 
 
 @routes.get('/version')
+@aiohttp_jinja2.template('version.html')
 async def get_version(req):
     loop = asyncio.get_event_loop()
-    program = 'git show -s HEAD --format="Currently on commit made %cr by %cn: %s (%H)"'
+    program = f'git show -s HEAD --format="Currently on commit made %cr by %cn: %s|%H"'
     output = await loop.run_in_executor(None, os.popen, program)
-    return web.Response(text=output.read())
+    message, _, commit_hash = output.read().rpartition('|')
+
+    return {'version': message, 'commit_hash': commit_hash}
 
 
 @routes.post('/github-webhook')
