@@ -29,12 +29,12 @@ async def error_middleware(req, handler):
     try:
         return await handler(req)
     except web.HTTPException as e:
-        message = e.text
         status = e.status
+        message = e.text
     except Exception as e:
         server_log.exception('Error handling request', exc_info=e, extra={'request': req})
-        message = 'Internal server error'
         status = 500
+        message = f'{status}: Internal server error'
 
     return web.json_response({'message': message}, status=status)
 
@@ -54,25 +54,12 @@ if __name__ == '__main__':
 
     # OAuth2 subapp
     OAuth2app = web.Application()
-    OAuth2app['args'] = app['args']
-    OAuth2app['config'] = app['config']
-
-    OAuth2app.on_startup.append(create_postgres_connection)
-    OAuth2app.on_cleanup.append(close_postgres_connection)
-
     OAuth2app.add_routes(oauth2_routes)
 
     app.add_subapp('/oauth/', OAuth2app)
 
     # API subapps
     APIv0app = web.Application()
-
-    APIv0app['args'] = app['args']
-    APIv0app['config'] = app['config']
-
-    APIv0app.on_startup.append(create_postgres_connection)
-    APIv0app.on_cleanup.append(close_postgres_connection)
-
     APIv0app.add_routes(api_v0_routes)
 
     app.add_subapp('/api/v0/', APIv0app)
