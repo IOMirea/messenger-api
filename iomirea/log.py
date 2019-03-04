@@ -38,7 +38,8 @@ class RequestErrorRepoter(logging.StreamHandler):
         request = getattr(record, 'request')
 
         return (
-            f'Exception: {record.msg} ({record.exc_info[0].__name__})\n'
+            f'Comment: {record.msg}\n'
+            f'Exception: {record.exc_info[0].__name__}: {record.exc_info[1]}\n'
             f'Request: {request.method} {request.url}\n'
             f'Headers: {" ".join(f"{k}:{v}" for k, v in request.headers.items())}\n'
             f'Time: {datetime.utcfromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S UTC")}\n'
