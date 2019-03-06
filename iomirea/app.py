@@ -78,7 +78,6 @@ if __name__ == "__main__":
     APIv0app.add_routes(api_v0_routes)
 
     app.add_subapp("/api/v0/", APIv0app)
-    # app.add_subapp('/api/', APIv0app)  # defaults to latest API version
 
     # logging setup
     setup_logging(app)
