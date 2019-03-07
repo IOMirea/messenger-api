@@ -94,5 +94,5 @@ if __name__ == "__main__":
     web.run_app(
         app,
         port=app["config"]["app-port"],  # ssl_context=ssl_context,
-        host="127.0.0.1" if app["args"].debug else "0.0.0.0",
+        host="127.0.0.1",
     )
