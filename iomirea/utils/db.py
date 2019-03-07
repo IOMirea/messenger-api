@@ -1,4 +1,4 @@
-import aiohttp
+from aiohttp import web
 
 
 async def ensure_existance(req, table, object_id, object_name):
@@ -7,4 +7,4 @@ async def ensure_existance(req, table, object_id, object_name):
     )
 
     if not record[0]:
-        raise aiohttp.web.HTTPNotFound(reason=f"{object_name} not found")
+        raise web.HTTPNotFound(reason=f"{object_name} not found")

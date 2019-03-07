@@ -3,7 +3,8 @@ import asyncio
 from aiohttp import web
 
 from db import User, Channel, Message, File
-from utils import ensure_existance
+from utils.db import ensure_existance
+from utils import checks, converters
 from security import access_checks
 
 
@@ -30,10 +31,18 @@ async def get_message(req):
 
 @routes.get(r"/channels/{channel_id:\d+}/messages")
 @access_checks.channel_access
+@checks.query_params(
+    {
+        "offset": converters.Integer(default=0, checks=[converters.Greater(0)]),
+        "limit": converters.Integer(default=200, checks=[converters.Between(0, 200)]),
+    }
+)
 async def get_messages(req):
     channel_id = int(req.match_info["channel_id"])
-    offset = int(req.query.get("offset", 0))  # TODO: handle ValueError
-    limit = int(req.query.get("limit", 200))  # TODO: handle ValueError; set max value
+    offset = req["query"]["offset"]
+    limit = req["query"]["limit"]
+
+    # TODO: handle asyncpg.exceptions.DataError, int64 overflow attacks in both query and path
 
     await ensure_existance(req, "channels", channel_id, "Channel")
 
