@@ -8,6 +8,10 @@
 ### Logs ###
 logs/
 
+### Pre-commit configs ###
+!.pre-commit-config.yaml
+!.pre-commit-hooks.yaml
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
