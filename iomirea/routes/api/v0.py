@@ -33,7 +33,7 @@ async def get_message(req):
 @access_checks.channel_access
 @checks.query_params(
     {
-        "offset": converters.Integer(default=0, checks=[converters.Greater(0)]),
+        "offset": converters.Integer(default=0, checks=[converters.BetweenXAndInt64(0)]),
         "limit": converters.Integer(default=200, checks=[converters.Between(0, 200)]),
     }
 )
@@ -41,8 +41,6 @@ async def get_messages(req):
     channel_id = int(req.match_info["channel_id"])
     offset = req["query"]["offset"]
     limit = req["query"]["limit"]
-
-    # TODO: handle asyncpg.exceptions.DataError, int64 overflow attacks in both query and path
 
     await ensure_existance(req, "channels", channel_id, "Channel")
 

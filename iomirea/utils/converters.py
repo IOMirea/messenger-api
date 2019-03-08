@@ -52,6 +52,17 @@ class Between(Check):
         return left and right
 
 
+class BetweenXAndInt64(Between):
+    @property
+    def pretty_name(self):
+        return self.__bases__[0].pretty_name
+
+    def __init__(self, lower_bound, inclusive=True):
+        super().__init__(
+            lower_bound, 9223372036854775807, inclusive_lower=inclusive,
+            inclusive_upper=True
+        )
+
 class Less(Check):
     error_template = "Should be less than {1.upper_bound}"
 
