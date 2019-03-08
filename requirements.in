@@ -1,0 +1,8 @@
+uvloop
+asyncpg
+aioredis
+pyyaml
+jinja2
+aiohttp
+aiohttp_jinja2
+aiohttp_remotes

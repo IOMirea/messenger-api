@@ -5,6 +5,8 @@ import ssl
 import jinja2
 import aiohttp_jinja2
 
+from aiohttp_remotes import setup, XForwardedRelaxed
+
 from aiohttp import web
 
 import middlewares
@@ -33,6 +35,11 @@ argparser.add_argument(
 )
 
 
+async def on_startup(app):
+    # support for X-Forwarded headers
+    await setup(app, XForwardedRelaxed())
+
+
 if __name__ == "__main__":
     app = web.Application(
         middlewares=[middlewares.error_handler, middlewares.match_info_validator]
@@ -42,6 +49,7 @@ if __name__ == "__main__":
     app["config"] = Config("config.yaml")
 
     app.on_startup.append(create_postgres_connection)
+    app.on_startup.append(on_startup)
     app.on_cleanup.append(close_postgres_connection)
 
     app.router.add_routes(misc_routes)
