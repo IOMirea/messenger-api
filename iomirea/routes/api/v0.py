@@ -1,4 +1,3 @@
-import re
 import json
 
 import asyncio
@@ -14,14 +13,12 @@ from security import access_checks
 
 routes = web.RouteTableDef()
 
-endpoint_clean_regex = re.compile(r":.+?(?=}(/|$))")
-
 
 @routes.get(endpoints_public.MESSAGE)
 @access_checks.channel_access
 async def get_message(req):
-    channel_id = int(req.match_info["channel_id"])
-    message_id = int(req.match_info["message_id"])
+    channel_id = req["match_info"]["channel_id"]
+    message_id = req["match_info"]["message_id"]
 
     await ensure_existance(req, "channels", channel_id, "Channel")
 
@@ -39,12 +36,15 @@ async def get_message(req):
 @access_checks.channel_access
 @checks.query_params(
     {
-        "offset": converters.Integer(default=0, checks=[converters.BetweenXAndInt64(0)]),
+        "offset": converters.Integer(
+            default=0, checks=[converters.BetweenXAndInt64(0)]
+        ),
         "limit": converters.Integer(default=200, checks=[converters.Between(0, 200)]),
     }
 )
 async def get_messages(req):
-    channel_id = int(req.match_info["channel_id"])
+    channel_id = req["match_info"]["channel_id"]
+
     offset = req["query"]["offset"]
     limit = req["query"]["limit"]
 
@@ -63,7 +63,7 @@ async def get_messages(req):
 @routes.get(endpoints_public.CHANNEL)
 @access_checks.channel_access
 async def get_channel(req):
-    channel_id = int(req.match_info["channel_id"])
+    channel_id = req["match_info"]["channel_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
         "SELECT * FROM channels WHERE id=$1;", channel_id
@@ -77,7 +77,7 @@ async def get_channel(req):
 
 @routes.get(endpoints_public.USER)
 async def get_user(req):
-    user_id = int(req.match_info["user_id"])
+    user_id = req["match_info"]["user_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
         "SELECT * FROM users WHERE id=$1;", user_id
@@ -91,7 +91,7 @@ async def get_user(req):
 
 @routes.get(endpoints_public.FILE)
 async def get_file(req):
-    file_id = int(req.match_info["file_id"])
+    file_id = req["match_info"]["file_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
         "SELECT * FROM files WHERE id=$1", file_id
@@ -107,11 +107,9 @@ async def get_file(req):
 async def get_public_endpoints(req):
     values = [
         getattr(endpoints_public, k)
-        for k in dir(endpoints_public) if not k.startswith("__")
+        for k in dir(endpoints_public)
+        if not k.startswith("__")
     ]
     values.sort()
-
-    # temporary until path variables validation checks are done
-    values = [endpoint_clean_regex.sub('', v) for v in values]
 
     return web.Response(text=json.dumps(values, indent=4))

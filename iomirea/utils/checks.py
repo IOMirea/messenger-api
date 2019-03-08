@@ -44,9 +44,7 @@ def query_params(params, unique=False):
                     )
                 except CheckError as e:
                     server_log.debug(f"Parameter {name}: check failed: {e}")
-                    raise web.HTTPBadRequest(
-                        reason=f"Parameter {name}: {e}"
-                    )
+                    raise web.HTTPBadRequest(reason=f"Parameter {name}: {e}")
 
             return await endpoint(req)
 

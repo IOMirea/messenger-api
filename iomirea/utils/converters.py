@@ -1,5 +1,7 @@
 import math
 
+from constants import BIGINT64_MAX_POSITIVE
+
 
 # TODO: separate checks and converters?
 
@@ -59,9 +61,12 @@ class BetweenXAndInt64(Between):
 
     def __init__(self, lower_bound, inclusive=True):
         super().__init__(
-            lower_bound, 9223372036854775807, inclusive_lower=inclusive,
-            inclusive_upper=True
+            lower_bound,
+            BIGINT64_MAX_POSITIVE,
+            inclusive_lower=inclusive,
+            inclusive_upper=True,
         )
+
 
 class Less(Check):
     error_template = "Should be less than {1.upper_bound}"
@@ -128,6 +133,18 @@ class Converter:
 class Integer(Converter):
     async def _convert(self, value, app):
         return int(value)
+
+
+class ID(Integer):
+    def __init__(self, **kwargs):
+        check = BetweenXAndInt64(0)
+
+        if "checks" not in kwargs:
+            kwargs["checks"] = [check]
+        else:
+            kwargs["checks"].append(check)
+
+        super().__init__(**kwargs)
 
 
 class Number(Converter):
