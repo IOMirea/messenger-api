@@ -4,8 +4,16 @@ import math
 # TODO: separate checks and converters?
 
 
+class ConvertError(ValueError):
+    pass
+
+
+class CheckError(ValueError):
+    pass
+
+
 class Check:
-    error_template = "Check {2} failed for parameter"
+    error_template = "Check {2} failed"
 
     @property
     def pretty_name(self):
@@ -19,7 +27,7 @@ class Check:
 
 
 class Between(Check):
-    error_template = "Parameter should be between {1.lower_bound} and {1.upper_bound}"
+    error_template = "Should be between {1.lower_bound} and {1.upper_bound}"
 
     def __init__(
         self, lower_bound, upper_bound, inclusive_lower=True, inclusive_upper=True
@@ -45,7 +53,7 @@ class Between(Check):
 
 
 class Less(Check):
-    error_template = "Parameter should be less than {1.upper_bound}"
+    error_template = "Should be less than {1.upper_bound}"
 
     def __init__(self, upper_bound, inclusive=True):
         self.upper_bound = upper_bound
@@ -56,7 +64,7 @@ class Less(Check):
 
 
 class Greater(Check):
-    error_template = "Parameter should be greater than {1.upper_bound}"
+    error_template = "Should be greater than {1.lower_bound}"
 
     def __init__(self, lower_bound, inclusive=True):
         self.lower_bound = lower_bound
@@ -75,7 +83,7 @@ class Custom(Check):
 
 
 class Converter:
-    error_template = "Failed to convert parameter to {1}: {2.__class__.__name__}"
+    error_template = "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
 
     @property
     def pretty_name(self):
@@ -88,12 +96,14 @@ class Converter:
     async def convert(self, value, app):
         try:
             result = await self._convert(value, app)
+        except ConvertError:
+            raise
         except Exception as e:
-            raise ValueError(self.error_template.format(value, self, e))
+            raise ConvertError(self.error_template.format(value, self, e))
 
         for check in self.checks:
             if not await check.check(result, app):
-                raise ValueError(check.error_template.format(result, check))
+                raise CheckError(check.error_template.format(result, check))
 
         return result
 
