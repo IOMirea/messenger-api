@@ -1,7 +1,11 @@
+import re
+import json
+
 import asyncio
 
 from aiohttp import web
 
+from routes.api import v0_endpoints_public as endpoints_public
 from db import User, Channel, Message, File
 from utils.db import ensure_existance
 from utils import checks, converters
@@ -10,8 +14,10 @@ from security import access_checks
 
 routes = web.RouteTableDef()
 
+endpoint_clean_regex = re.compile(r":.+?(?=}(/|$))")
 
-@routes.get(r"/channels/{channel_id:\d+}/messages/{message_id:\d+}")
+
+@routes.get(endpoints_public.MESSAGE)
 @access_checks.channel_access
 async def get_message(req):
     channel_id = int(req.match_info["channel_id"])
@@ -29,7 +35,7 @@ async def get_message(req):
     return web.json_response(Message.from_record(record).json)
 
 
-@routes.get(r"/channels/{channel_id:\d+}/messages")
+@routes.get(endpoints_public.MESSAGES)
 @access_checks.channel_access
 @checks.query_params(
     {
@@ -54,7 +60,7 @@ async def get_messages(req):
     return web.json_response([Message.from_record(record).json for record in records])
 
 
-@routes.get(r"/channels/{channel_id:\d+}")
+@routes.get(endpoints_public.CHANNEL)
 @access_checks.channel_access
 async def get_channel(req):
     channel_id = int(req.match_info["channel_id"])
@@ -69,7 +75,7 @@ async def get_channel(req):
     return web.json_response(Channel.from_record(record).json)
 
 
-@routes.get(r"/users/{user_id:\d+}")
+@routes.get(endpoints_public.USER)
 async def get_user(req):
     user_id = int(req.match_info["user_id"])
 
@@ -83,7 +89,7 @@ async def get_user(req):
     return web.json_response(User.from_record(record).json)
 
 
-@routes.get(r"/files/{file_id:\d+}")
+@routes.get(endpoints_public.FILE)
 async def get_file(req):
     file_id = int(req.match_info["file_id"])
 
@@ -95,3 +101,17 @@ async def get_file(req):
         raise web.HTTPNotFound(reason="File not found")
 
     return web.json_response(File.from_record(record).json)
+
+
+@routes.get(endpoints_public.ENDPOINTS)
+async def get_public_endpoints(req):
+    values = [
+        getattr(endpoints_public, k)
+        for k in dir(endpoints_public) if not k.startswith("__")
+    ]
+    values.sort()
+
+    # temporary until path variables validation checks are done
+    values = [endpoint_clean_regex.sub('', v) for v in values]
+
+    return web.Response(text=json.dumps(values, indent=4))
