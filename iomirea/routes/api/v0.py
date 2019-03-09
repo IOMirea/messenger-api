@@ -7,15 +7,15 @@ from aiohttp import web
 from routes.api import v0_endpoints_public as endpoints_public
 from db import User, Channel, Message, File
 from utils.db import ensure_existance
-from utils import checks, converters
-from security import access_checks
+from utils import helpers, converters, checks
+from security import access
 
 
 routes = web.RouteTableDef()
 
 
 @routes.get(endpoints_public.MESSAGE)
-@access_checks.channel_access
+@access.channel
 async def get_message(req):
     channel_id = req["match_info"]["channel_id"]
     message_id = req["match_info"]["message_id"]
@@ -33,13 +33,13 @@ async def get_message(req):
 
 
 @routes.get(endpoints_public.MESSAGES)
-@access_checks.channel_access
-@checks.query_params(
+@access.channel
+@helpers.query_params(
     {
         "offset": converters.Integer(
-            default=0, checks=[converters.BetweenXAndInt64(0)]
+            default=0, checks=[checks.BetweenXAndInt64(0)]
         ),
-        "limit": converters.Integer(default=200, checks=[converters.Between(0, 200)]),
+        "limit": converters.Integer(default=200, checks=[checks.Between(0, 200)]),
     }
 )
 async def get_messages(req):
@@ -61,7 +61,7 @@ async def get_messages(req):
 
 
 @routes.get(endpoints_public.CHANNEL)
-@access_checks.channel_access
+@access.channel
 async def get_channel(req):
     channel_id = req["match_info"]["channel_id"]
 

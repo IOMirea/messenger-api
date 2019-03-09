@@ -1,53 +1,86 @@
-from aiohttp import web
-
-from log import server_log
-from utils.converters import ConvertError, CheckError
 
 
-def get_repeating(iterable):
-    seen = set()
-    for x in iterable:
-        if x in seen:
-            return x
-        seen.add(x)
-
-    return None
+from constants import BIGINT64_MAX_POSITIVE
 
 
-def query_params(params, unique=False):
-    def deco(endpoint):
-        async def wrapper(req):
-            if unique:
-                repeating = get_repeating(req.query.keys())
+class Check:
+    error_template = "Check {2} failed"
 
-                if repeating is not None:
-                    raise web.HTTPBadRequest(
-                        reason=f"{repeating} parameter repeats in query"
-                    )
+    @property
+    def pretty_name(self):
+        return self.__class__.__name__
 
-            req["query"] = {}
+    async def check(self, value, app):
+        raise NotImplementedError
 
-            for name, converter in params.items():
-                try:
-                    if converter.default is None:
-                        if name not in req.query:
-                            error_message = f"Parameter {name} is missing from query"
-                            break
+    def __str__(self):
+        return self.pretty_name
 
-                    req["query"][name] = await converter.convert(
-                        req.query.get(name, converter.default), req.app
-                    )
-                except ConvertError as e:
-                    server_log.debug(f"Parameter {name}: {e}")
-                    raise web.HTTPBadRequest(
-                        reason=f"Parameter {name}: should be of type {converter}"
-                    )
-                except CheckError as e:
-                    server_log.debug(f"Parameter {name}: check failed: {e}")
-                    raise web.HTTPBadRequest(reason=f"Parameter {name}: {e}")
 
-            return await endpoint(req)
+class Between(Check):
+    error_template = "Should be between {1.lower_bound} and {1.upper_bound}"
 
-        return wrapper
+    def __init__(
+        self, lower_bound, upper_bound, inclusive_lower=True, inclusive_upper=True
+    ):
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.inclusive_lower = inclusive_lower
+        self.inclusive_upper = inclusive_upper
 
-    return deco
+    async def check(self, value, app):
+        left = (
+            value >= self.lower_bound
+            if self.inclusive_lower
+            else value > self.lower_bound
+        )
+        right = (
+            value <= self.upper_bound
+            if self.inclusive_upper
+            else value < self.upper_bound
+        )
+
+        return left and right
+
+
+class BetweenXAndInt64(Between):
+    @property
+    def pretty_name(self):
+        return self.__bases__[0].pretty_name
+
+    def __init__(self, lower_bound, inclusive=True):
+        super().__init__(
+            lower_bound, BIGINT64_MAX_POSITIVE,
+            inclusive_lower=inclusive,
+            inclusive_upper=True,
+        )
+
+
+class Less(Check):
+    error_template = "Should be less than {1.upper_bound}"
+
+    def __init__(self, upper_bound, inclusive=True):
+        self.upper_bound = upper_bound
+        self.inclusive = inclusive
+
+    async def check(self, value, app):
+        return value <= self.upper_bound if self.inclusive else value < self.upper_bound
+
+
+class Greater(Check):
+    error_template = "Should be greater than {1.lower_bound}"
+
+    def __init__(self, lower_bound, inclusive=True):
+        self.lower_bound = lower_bound
+        self.inclusive = inclusive
+
+    async def check(self, value, app):
+        return value >= self.lower_bound if self.inclusive else value > self.lower_bound
+
+
+class Custom(Check):
+    def __init__(self, custom_fn):
+        self.custom_fn = custom_fn
+
+    async def check(self, value, app):
+        return await self.custom_fn(value, app)

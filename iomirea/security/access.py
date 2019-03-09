@@ -1,10 +1,10 @@
 from aiohttp import web
 
 
-def channel_access(endpoint):
+def channel(endpoint):
     async def wrapper(req):
         # TODO: check token
-        channel_id = int(req.match_info["channel_id"])
+        channel_id = req["match_info"]["channel_id"]
         user_id = 0  # TODO: get from token
 
         result = await req.config_dict["pg_conn"].fetchrow(
