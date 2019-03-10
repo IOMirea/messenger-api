@@ -16,7 +16,7 @@ from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
 from config import Config
-from log import setup_logging, server_log
+from log import setup_logging, server_log, AccessLogger
 from db import create_postgres_connection, close_postgres_connection
 
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
 
     web.run_app(
-        app,
+        app, access_log_class=AccessLogger,
         port=app["config"]["app-port"],  # ssl_context=ssl_context,
         host="127.0.0.1",
     )

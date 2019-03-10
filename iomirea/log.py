@@ -3,6 +3,8 @@ import asyncio
 import logging
 import traceback
 
+from aiohttp.abc import AbstractAccessLogger
+
 from datetime import datetime
 
 from reporter import send_report
@@ -14,6 +16,15 @@ server_log = logging.getLogger("server")
 
 # internal
 _access_log = logging.getLogger("aiohttp.access")
+
+
+class AccessLogger(AbstractAccessLogger):
+    def log(self, req, res, time):
+        remote = req.headers.get("X-Forwarded-For", req.remote)
+        user_agent = req.headers.get("User-Agent", "-")
+
+        # TODO: customizable format?
+        self.logger.info(f'{remote} "{user_agent}": {req.method} {req.path}->{res.status}')
 
 
 class RequestErrorRepoter(logging.StreamHandler):
@@ -85,10 +96,7 @@ def setup_logging(app):
     )
 
     # set handler formatting
-    access_log_format = (
-        log_config["basic-log-format"]
-        + '{remote_address} "{request_header[User-Agent]}": {first_request_line}: {response_status}'
-    )
+    access_log_format = (log_config["basic-log-format"] + "{msg}")
 
     access_stream_handler.setFormatter(
         logging.Formatter(

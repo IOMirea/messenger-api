@@ -1,3 +1,5 @@
+from typing import Dict
+
 import asyncpg
 
 
@@ -17,7 +19,7 @@ class DBObject:
     """
 
     # mapping of database keys to pretty keys
-    _keys = {}
+    _keys: Dict[str, str] = {}
 
     def __init__(self, data):
         self._keys.update({"id": "id"})
