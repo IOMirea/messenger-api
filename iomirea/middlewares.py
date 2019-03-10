@@ -1,13 +1,17 @@
 import asyncio
 
+from typing import Callable, Awaitable
 from aiohttp import web
 
 from log import server_log
 from utils import converters
 
 
+HandlerType = Callable[[web.Request], Awaitable[web.Response]]
+
+
 @web.middleware
-async def error_handler(req, handler):
+async def error_handler(req: web.Request, handler: HandlerType) -> web.Response:
     try:
         return await handler(req)
     except (web.HTTPSuccessful, web.HTTPRedirection):
@@ -32,7 +36,7 @@ async def error_handler(req, handler):
 
 
 @web.middleware
-async def match_info_validator(req, handler):
+async def match_info_validator(req: web.Request, handler: HandlerType) -> web.Response:
     req["match_info"] = {}
 
     for key, value in req.match_info.items():

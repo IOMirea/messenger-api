@@ -1,10 +1,12 @@
 import smtplib
 
+import aiohttp
+
 
 # TODO: different way of reporting errors
 
 
-def send_report(text, app):
+def send_report(text: str, app: aiohttp.web.Application) -> None:
     print(text)  # until a new way is found
     return
 

@@ -5,18 +5,21 @@ import yaml
 import asyncio
 import importlib
 
+from typing import Dict, Any, Optional, List
+
 import asyncpg
 
+from migration import Migration
 from utils import init_logger, migrate_log
 
 CONFIG_PATH = "config.yaml"
 
 
-async def get_config_version(config):
+async def get_config_version(config: Dict[str, Any]) -> int:
     return config.get("config-version", -1)
 
 
-async def get_db_version(connection):
+async def get_db_version(connection: asyncpg.Connection) -> int:
     try:
         record = await connection.fetchrow(
             "SELECT version FROM versions WHERE name='database';"
@@ -26,7 +29,9 @@ async def get_db_version(connection):
         return -1
 
 
-def get_migrations(path, config, connection=None):
+def get_migrations(
+    path: str, config: Dict[str, Any], connection: Optional[asyncpg.Connection] = None
+) -> List[Migration]:
     migrations = []
 
     package_path_base = f'{".".join(path.split(os.path.sep)[1:])}.'
@@ -36,12 +41,12 @@ def get_migrations(path, config, connection=None):
 
         entry = entry[:-3]  # strip '.py'
 
-        version, delim, rest = entry.partition("_")
+        front, delim, rest = entry.partition("_")
         if not delim:
             continue
 
         try:
-            version = int(version)
+            version = int(front)
         except ValueError:
             continue
 
@@ -55,7 +60,7 @@ def get_migrations(path, config, connection=None):
     return migrations
 
 
-async def perform_config_migration(config):
+async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
     migrations = get_migrations("migrations/config", config)
     current_version = await get_config_version(config)
 
@@ -94,7 +99,9 @@ async def perform_config_migration(config):
     return config
 
 
-async def perform_db_migration(config, connection):
+async def perform_db_migration(
+    config: Dict[str, Any], connection: asyncpg.Connection
+) -> None:
     migrations = get_migrations("migrations/db", config, connection)
     current_version = await get_db_version(connection)
 
@@ -133,7 +140,7 @@ async def perform_db_migration(config, connection):
     migrate_log(f"Successfully finished {len(migrations)} database migrations")
 
 
-async def main():
+async def main() -> None:
     with open(CONFIG_PATH, "r") as f:
         config = yaml.load(f)
 

@@ -1,11 +1,20 @@
+from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
+
 from aiohttp import web
 
 from log import server_log
 from utils.converters import ConvertError, CheckError
 
 
-def get_repeating(iterable):
-    seen = set()
+HandlerType = Callable[[web.Request], Awaitable[web.Response]]
+DecoratedHandlerType = Callable[
+    [Callable[[web.Request], Awaitable[web.Response]]],
+    Callable[[web.Request], Awaitable[web.Response]],
+]
+
+
+def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
+    seen: Set[Any] = set()
     for x in iterable:
         if x in seen:
             return x
@@ -14,9 +23,9 @@ def get_repeating(iterable):
     return None
 
 
-def query_params(params, unique=False):
-    def deco(endpoint):
-        async def wrapper(req):
+def query_params(params: Dict[str, Any], unique: bool = False) -> DecoratedHandlerType:
+    def deco(endpoint: HandlerType) -> HandlerType:
+        async def wrapper(req: web.Request) -> web.Response:
             if unique:
                 repeating = get_repeating(req.query.keys())
 

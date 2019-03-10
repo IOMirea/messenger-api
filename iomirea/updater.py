@@ -1,11 +1,13 @@
+import sys
 import asyncio
-import os
+
+import aiohttp
 
 from constants import EXIT_CODE_RESTART_IMMEDIATELY
 from log import git_log
 
 
-async def updater(app):
+async def updater(app: aiohttp.web.Application) -> None:
     git_log.info("Checking for updates")
 
     try:
@@ -29,7 +31,7 @@ async def updater(app):
     if stdout.startswith(b"Updating"):  # update begun
         git_log.info("Updated local files, restarting to apply changes")
         # TODO: call app destructor
-        os.sys.exit(EXIT_CODE_RESTART_IMMEDIATELY)
+        sys.exit(EXIT_CODE_RESTART_IMMEDIATELY)
 
     git_log.info(f"Something unexpected happened: {stdout.decode()}")
     # TODO: git reset --hard

@@ -2,6 +2,8 @@ import os
 import hmac
 import asyncio
 
+from typing import Dict, Any
+
 import aiohttp_jinja2
 
 from aiohttp import web
@@ -15,13 +17,13 @@ routes = web.RouteTableDef()
 
 @routes.get("/")
 @aiohttp_jinja2.template("index.html")
-async def index(req):
+async def index(req: web.Request) -> Dict[str, Any]:
     return {}
 
 
 @routes.get("/version")
 @aiohttp_jinja2.template("version.html")
-async def get_version(req):
+async def get_version(req: web.Request) -> Dict[str, Any]:
     loop = asyncio.get_event_loop()
     program = f'git show -s HEAD --format="Currently on commit made %cr by %cn: %s|%H"'
     output = await loop.run_in_executor(None, os.popen, program)
@@ -31,7 +33,7 @@ async def get_version(req):
 
 
 @routes.post("/github-webhook")
-async def github_webhook(req):
+async def github_webhook(req: web.Request) -> web.Response:
     header_signature = req.headers.get("X-Hub-Signature")
     if not header_signature:
         raise web.HTTPUnauthorized(reason="Missing signature header")

@@ -1,5 +1,9 @@
 import math
 
+from typing import Any, List
+
+import aiohttp
+
 from utils import checks
 
 
@@ -15,14 +19,14 @@ class Converter:
     error_template = "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
 
     @property
-    def pretty_name(self):
+    def pretty_name(self) -> str:
         return self.__class__.__name__
 
-    def __init__(self, default=None, checks=[]):
+    def __init__(self, default: Any = None, checks: List[checks.Check] = []):
         self.default = default
         self.checks = checks
 
-    async def convert(self, value, app):
+    async def convert(self, value: str, app: aiohttp.web.Application) -> Any:
         try:
             result = await self._convert(value, app)
         except ConvertError:
@@ -36,20 +40,20 @@ class Converter:
 
         return result
 
-    async def _convert(self, value, app):
+    async def _convert(self, value: str, app: aiohttp.web.Application) -> Any:
         raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.pretty_name
 
 
 class Integer(Converter):
-    async def _convert(self, value, app):
+    async def _convert(self, value: str, app: aiohttp.web.Application) -> int:
         return int(value)
 
 
 class ID(Integer):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         check = checks.BetweenXAndInt64(0)
 
         if "checks" not in kwargs:
@@ -61,7 +65,7 @@ class ID(Integer):
 
 
 class Number(Converter):
-    async def _convert(self, value, app):
+    async def _convert(self, value: str, app: aiohttp.web.Application) -> float:
         result = float(value)
         if math.isnan(result) or math.isinf(result):
             raise ValueError
@@ -70,7 +74,7 @@ class Number(Converter):
 
 
 class String(Converter):
-    async def _convert(self, value, app):
+    async def _convert(self, value: str, app: aiohttp.web.Application) -> str:
         return value
 
 
@@ -78,7 +82,7 @@ class Boolean(Converter):
     POSITIVE = ["1", "y", "yes", "+", "positive"]
     NEGATIVE = ["0", "n", "no", "-", "negative"]
 
-    async def _convert(self, value, app):
+    async def _convert(self, value: str, app: aiohttp.web.Application) -> bool:
         lower_value = value.lower()
 
         if lower_value in self.POSITIVE:

@@ -35,7 +35,7 @@ argparser.add_argument(
 )
 
 
-async def on_startup(app):
+async def on_startup(app: web.Application) -> None:
     # support for X-Forwarded headers
     await setup(app, XForwardedRelaxed())
 
@@ -79,7 +79,8 @@ if __name__ == "__main__":
     server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
 
     web.run_app(
-        app, access_log_class=AccessLogger,
+        app,
+        access_log_class=AccessLogger,
         port=app["config"]["app-port"],  # ssl_context=ssl_context,
         host="127.0.0.1",
     )

@@ -1,8 +1,13 @@
+from typing import Callable, Awaitable
+
 from aiohttp import web
 
 
-def channel(endpoint):
-    async def wrapper(req):
+HandlerType = Callable[[web.Request], Awaitable[web.Response]]
+
+
+def channel(endpoint: HandlerType) -> HandlerType:
+    async def wrapper(req: web.Request) -> web.Response:
         # TODO: check token
         channel_id = req["match_info"]["channel_id"]
         user_id = 0  # TODO: get from token

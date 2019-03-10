@@ -3,7 +3,9 @@ import asyncio
 import logging
 import traceback
 
-from aiohttp.abc import AbstractAccessLogger
+from typing import Optional, IO, List, Union
+
+import aiohttp
 
 from datetime import datetime
 
@@ -18,21 +20,25 @@ server_log = logging.getLogger("server")
 _access_log = logging.getLogger("aiohttp.access")
 
 
-class AccessLogger(AbstractAccessLogger):
-    def log(self, req, res, time):
+class AccessLogger(aiohttp.abc.AbstractAccessLogger):
+    def log(
+        self, req: aiohttp.web.Request, res: aiohttp.web.Response, time: float
+    ) -> None:
         remote = req.headers.get("X-Forwarded-For", req.remote)
         user_agent = req.headers.get("User-Agent", "-")
 
         # TODO: customizable format?
-        self.logger.info(f'{remote} "{user_agent}": {req.method} {req.path}->{res.status}')
+        self.logger.info(
+            f'{remote} "{user_agent}": {req.method} {req.path}->{res.status}'
+        )
 
 
 class RequestErrorRepoter(logging.StreamHandler):
-    def __init__(self, app, **kwargs):
+    def __init__(self, app: aiohttp.web.Application, **kwargs: Optional[IO[str]]):
         super().__init__(**kwargs)
         self.app = app
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         if record.levelno == logging.ERROR:
             # TODO: write to file
             # TODO: error caching
@@ -43,30 +49,38 @@ class RequestErrorRepoter(logging.StreamHandler):
                     None, send_report, self._format_report_text(record), self.app
                 )
 
-    def _format_report_text(self, record):
-        nl = "\n"
+    def _format_report_text(self, record: logging.LogRecord) -> str:
         request = getattr(record, "request")
+
+        if record.exc_info is not None:
+            exc_name = record.exc_info[0].__class__.__name__
+            exc_text = record.exc_info[1]
+            exc_traceback = "\n".join(traceback.format_tb(record.exc_info[2], 20))
+        else:
+            exc_name = "Unknown exception"
+            exc_text = ""
+            exc_traceback = ""
 
         return (
             f"Comment: {record.msg}\n"
-            f"Exception: {record.exc_info[0].__name__}: {record.exc_info[1]}\n"
+            f"Exception: {exc_name}: {exc_text}\n"
             f"Request: {request.method} {request.url}\n"
             f'Headers: {" ".join(f"{k}:{v}" for k, v in request.headers.items())}\n'
             f'Time: {datetime.utcfromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S UTC")}\n'
             f"IP: {request.remote}\n"
             f"\n"
             f"Traceback:\n"
-            f"{nl.join(traceback.format_tb(record.exc_info[2], 20))}"
+            f"{exc_traceback}"
         )
 
 
 class RequestErrorFileHandler(logging.FileHandler):
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         if record.levelno == logging.ERROR:
             super().emit(record)
 
 
-def setup_logging(app):
+def setup_logging(app: aiohttp.web.Application) -> None:
     log_config = app["config"]["logging"]
 
     logging_path_base = log_config["logging-folder"] + os.path.sep
@@ -96,7 +110,7 @@ def setup_logging(app):
     )
 
     # set handler formatting
-    access_log_format = (log_config["basic-log-format"] + "{msg}")
+    access_log_format = log_config["basic-log-format"] + "{msg}"
 
     access_stream_handler.setFormatter(
         logging.Formatter(

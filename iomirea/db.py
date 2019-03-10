@@ -1,16 +1,20 @@
-from typing import Dict
+from typing import Dict, TypeVar, Type
 
 import asyncpg
+import aiohttp
 
 
-async def create_postgres_connection(app):
+async def create_postgres_connection(app: aiohttp.web.Application) -> None:
     connection = await asyncpg.connect(**app["config"].postgresql)
 
     app["pg_conn"] = connection
 
 
-async def close_postgres_connection(app):
+async def close_postgres_connection(app: aiohttp.web.Application) -> None:
     await app["pg_conn"].close()
+
+
+T = TypeVar("T", bound="DBObject")
 
 
 class DBObject:
@@ -21,21 +25,21 @@ class DBObject:
     # mapping of database keys to pretty keys
     _keys: Dict[str, str] = {}
 
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, str]):
         self._keys.update({"id": "id"})
 
         self._data = {pk: data[dk] for dk, pk in self._keys.items()}
 
     @classmethod
-    def from_record(cls, record):
+    def from_record(cls: Type[T], record: Dict[str, str]) -> T:
         return cls(dict(record))
 
     @classmethod
-    def from_json(cls, data):
+    def from_json(cls: Type[T], data: Dict[str, str]) -> T:
         return cls(data)
 
     @property
-    def json(self):
+    def json(self) -> Dict[str, str]:
         return self._data
 
 

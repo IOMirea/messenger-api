@@ -16,7 +16,7 @@ routes = web.RouteTableDef()
 
 @routes.get(endpoints_public.MESSAGE)
 @access.channel
-async def get_message(req):
+async def get_message(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
     message_id = req["match_info"]["message_id"]
 
@@ -36,13 +36,11 @@ async def get_message(req):
 @access.channel
 @helpers.query_params(
     {
-        "offset": converters.Integer(
-            default=0, checks=[checks.BetweenXAndInt64(0)]
-        ),
+        "offset": converters.Integer(default=0, checks=[checks.BetweenXAndInt64(0)]),
         "limit": converters.Integer(default=200, checks=[checks.Between(0, 200)]),
     }
 )
-async def get_messages(req):
+async def get_messages(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
 
     offset = req["query"]["offset"]
@@ -62,7 +60,7 @@ async def get_messages(req):
 
 @routes.get(endpoints_public.CHANNEL)
 @access.channel
-async def get_channel(req):
+async def get_channel(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
@@ -76,7 +74,7 @@ async def get_channel(req):
 
 
 @routes.get(endpoints_public.USER)
-async def get_user(req):
+async def get_user(req: web.Request) -> web.Response:
     user_id = req["match_info"]["user_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
@@ -90,7 +88,7 @@ async def get_user(req):
 
 
 @routes.get(endpoints_public.FILE)
-async def get_file(req):
+async def get_file(req: web.Request) -> web.Response:
     file_id = req["match_info"]["file_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
@@ -104,7 +102,7 @@ async def get_file(req):
 
 
 @routes.get(endpoints_public.ENDPOINTS)
-async def get_public_endpoints(req):
+async def get_public_endpoints(req: web.Request) -> web.Response:
     values = [
         getattr(endpoints_public, k)
         for k in dir(endpoints_public)
