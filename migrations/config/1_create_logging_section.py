@@ -2,7 +2,7 @@ from migration import Migration
 
 
 class Migration1(Migration):
-    async def up(self, latest):
+    async def up(self, latest: int) -> None:
         self.config["logging"] = {
             "basic-log-format": "[{asctime} {levelname}]{name}: ",
             "basic-time-format": "%I:%M:%S",
@@ -13,5 +13,5 @@ class Migration1(Migration):
             "migration-log-file": "migration.log",
         }
 
-    async def down(self):
+    async def down(self) -> None:
         self.config.pop("logging")

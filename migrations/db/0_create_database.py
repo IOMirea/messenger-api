@@ -1,9 +1,11 @@
+import typing
+
 from migration import Migration
 from utils import migrate_log
 
 
 class Migration0(Migration):
-    async def _up(self, latest, config):
+    async def _up(self, latest: int, config: typing.Dict[str, typing.Any]) -> None:
         filename = "schema.sql"
 
         migrate_log(f"Creating database db from file {filename}")
