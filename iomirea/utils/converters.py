@@ -18,10 +18,6 @@ class CheckError(ValueError):
 class Converter:
     error_template = "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
 
-    @property
-    def pretty_name(self) -> str:
-        return self.__class__.__name__
-
     def __init__(self, default: Any = None, checks: List[checks.Check] = []):
         self.default = default
         self.checks = checks
@@ -44,7 +40,7 @@ class Converter:
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return self.pretty_name
+        return self.__class__.__name__.lower()
 
 
 class Integer(Converter):

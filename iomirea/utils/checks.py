@@ -12,7 +12,7 @@ class Check:
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return self.__class__.__name__
+        return self.__class__.__name__.lower()
 
 
 class Between(Check):
@@ -55,7 +55,7 @@ class BetweenXAndInt64(Between):
         )
 
     def __str__(self) -> str:
-        return self.__bases__[0].pretty_name
+        return super().__str__()
 
 
 class Less(Check):
