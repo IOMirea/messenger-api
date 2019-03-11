@@ -1,6 +1,6 @@
 import asyncio
 import argparse
-import ssl  # noqa
+import ssl
 
 import jinja2
 import aiohttp_jinja2
@@ -80,8 +80,12 @@ if __name__ == "__main__":
     )
 
     # SSL setup
-    # ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    # ssl_context.load_cert_chain('iomirea.ml.crt', 'iomirea.ml.key')
+    if app["args"].debug:
+        ssl_context = None
+    else:
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_section = app["config"]["ssl"]
+        ssl_context.load_cert_chain(ssl_section["cert-chain-path"], ssl_section["cert-privkey-path"])
 
     server_log.info(
         f'Running in {"debug" if app["args"].debug else "production"} mode'
@@ -90,6 +94,6 @@ if __name__ == "__main__":
     web.run_app(
         app,
         access_log_class=AccessLogger,
-        port=app["config"]["app-port"],  # ssl_context=ssl_context,
+        port=app["config"]["app-port"], ssl_context=ssl_context,
         host="127.0.0.1",
     )

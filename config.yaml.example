@@ -1,5 +1,5 @@
-app-port: 80
-config-version: 1
+app-port: 8080
+config-version: 2
 error-reporter:
   smtp:
     host: SMTP-HOST
@@ -22,3 +22,6 @@ postgresql:
   password: POSTGRES-PASSWORD
   port: 5432
   user: POSTGRES-USER
+ssl:
+  cert-chain-path: CERT-CHAIN-PATH
+  cert-privkey-path: CERT-PRIVKEY-PATH
