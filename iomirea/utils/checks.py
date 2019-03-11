@@ -8,15 +8,11 @@ from constants import BIGINT64_MAX_POSITIVE
 class Check:
     error_template = "Check {2} failed"
 
-    @property
-    def pretty_name(self) -> str:
-        return self.__class__.__name__
-
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
         raise NotImplementedError
 
     def __str__(self) -> str:
-        return self.pretty_name
+        return self.__class__.__name__
 
 
 class Between(Check):
@@ -50,12 +46,6 @@ class Between(Check):
 
 
 class BetweenXAndInt64(Between):
-    @property
-    def pretty_name(self) -> str:
-        # return self.__bases__[0].pretty_name
-        # getattr is used because mypy complains for some reason
-        return getattr(self, "__bases__", ["Between"])[0].pretty_name
-
     def __init__(self, lower_bound: Any, inclusive: bool = True):
         super().__init__(
             lower_bound,
@@ -63,6 +53,9 @@ class BetweenXAndInt64(Between):
             inclusive_lower=inclusive,
             inclusive_upper=True,
         )
+
+    def __str__(self) -> str:
+        return self.__bases__[0].pretty_name
 
 
 class Less(Check):
