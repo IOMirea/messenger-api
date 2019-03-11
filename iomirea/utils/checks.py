@@ -66,7 +66,11 @@ class Less(Check):
         self.inclusive = inclusive
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
-        return value <= self.upper_bound if self.inclusive else value < self.upper_bound
+        return (
+            value <= self.upper_bound
+            if self.inclusive
+            else value < self.upper_bound
+        )
 
 
 class Greater(Check):
@@ -77,12 +81,17 @@ class Greater(Check):
         self.inclusive = inclusive
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
-        return value >= self.lower_bound if self.inclusive else value > self.lower_bound
+        return (
+            value >= self.lower_bound
+            if self.inclusive
+            else value > self.lower_bound
+        )
 
 
 class Custom(Check):
     def __init__(
-        self, custom_fn: Callable[[Any, aiohttp.web.Application], Awaitable[bool]]
+        self,
+        custom_fn: Callable[[Any, aiohttp.web.Application], Awaitable[bool]],
     ):
         self.custom_fn = custom_fn
 

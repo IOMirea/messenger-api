@@ -15,4 +15,6 @@ def send_report(text: str, app: aiohttp.web.Application) -> None:
 
     with smtplib.SMTP_SSL(config["smtp"]["host"]) as smtp:
         smtp.login(config["smtp"]["login"], config["smtp"]["password"])
-        smtp.sendmail(config["smtp"]["login"], config["targets"], text.encode("utf8"))
+        smtp.sendmail(
+            config["smtp"]["login"], config["targets"], text.encode("utf8")
+        )

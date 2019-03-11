@@ -17,11 +17,15 @@ def init_logger(config: Dict[str, Any]) -> None:
             os.makedirs(log_path_base)
 
         handlers.append(
-            logging.FileHandler(log_path_base + config["logging"]["migration-log-file"])
+            logging.FileHandler(
+                log_path_base + config["logging"]["migration-log-file"]
+            )
         )
 
         handlers.append(
-            logging.FileHandler(log_path_base + config["logging"]["common-log-file"])
+            logging.FileHandler(
+                log_path_base + config["logging"]["common-log-file"]
+            )
         )
 
         for h in handlers:

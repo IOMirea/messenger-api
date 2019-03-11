@@ -16,7 +16,9 @@ class CheckError(ValueError):
 
 
 class Converter:
-    error_template = "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
+    error_template = (
+        "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
+    )
 
     def __init__(self, default: Any = None, checks: List[checks.Check] = []):
         self.default = default
@@ -61,7 +63,9 @@ class ID(Integer):
 
 
 class Number(Converter):
-    async def _convert(self, value: str, app: aiohttp.web.Application) -> float:
+    async def _convert(
+        self, value: str, app: aiohttp.web.Application
+    ) -> float:
         result = float(value)
         if math.isnan(result) or math.isinf(result):
             raise ValueError

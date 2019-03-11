@@ -30,7 +30,9 @@ async def get_db_version(connection: asyncpg.Connection) -> int:
 
 
 def get_migrations(
-    path: str, config: Dict[str, Any], connection: Optional[asyncpg.Connection] = None
+    path: str,
+    config: Dict[str, Any],
+    connection: Optional[asyncpg.Connection] = None,
 ) -> List[Migration]:
     migrations = []
 

@@ -11,7 +11,9 @@ HandlerType = Callable[[web.Request], Awaitable[web.Response]]
 
 
 @web.middleware
-async def error_handler(req: web.Request, handler: HandlerType) -> web.Response:
+async def error_handler(
+    req: web.Request, handler: HandlerType
+) -> web.Response:
     try:
         return await handler(req)
     except (web.HTTPSuccessful, web.HTTPRedirection):
@@ -36,7 +38,9 @@ async def error_handler(req: web.Request, handler: HandlerType) -> web.Response:
 
 
 @web.middleware
-async def match_info_validator(req: web.Request, handler: HandlerType) -> web.Response:
+async def match_info_validator(
+    req: web.Request, handler: HandlerType
+) -> web.Response:
     req["match_info"] = {}
 
     for key, value in req.match_info.items():
@@ -44,7 +48,9 @@ async def match_info_validator(req: web.Request, handler: HandlerType) -> web.Re
             continue
 
         try:
-            req["match_info"][key] = await converters.ID().convert(value, req.app)
+            req["match_info"][key] = await converters.ID().convert(
+                value, req.app
+            )
         except (converters.ConvertError, converters.CheckError) as e:
             server_log.debug(f"match_validator: {value}: {e}")
             raise web.HTTPNotFound

@@ -49,7 +49,11 @@ class User(DBObject):
 
 
 class Channel(DBObject):
-    _keys = {"name": "name", "user_ids": "user_ids", "pinned_ids": "pinned_ids"}
+    _keys = {
+        "name": "name",
+        "user_ids": "user_ids",
+        "pinned_ids": "pinned_ids",
+    }
 
 
 class Message(DBObject):

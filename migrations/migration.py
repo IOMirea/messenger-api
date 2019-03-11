@@ -3,6 +3,9 @@ from typing import Dict, Optional, Any
 import asyncpg
 
 
+# TODO: separate to ConfigMigartion and DBMigration
+
+
 class Migration:
     def __init__(
         self,
@@ -21,7 +24,9 @@ class Migration:
             return self.config
 
         if self.conn is None:
-            raise RuntimeError("migration does not have database connection to use")
+            raise RuntimeError(
+                "migration does not have database connection to use"
+            )
 
         await self.conn.execute(
             f"UPDATE versions SET version={self.version} WHERE name='database';"
@@ -30,7 +35,9 @@ class Migration:
         return self.config
 
     async def up(self, latest: int) -> None:
-        raise NotImplementedError(f"Migration {self.version}: Not possible to go up")
+        raise NotImplementedError(
+            f"Migration {self.version}: Not possible to go up"
+        )
 
     async def _down(self, config: bool) -> Dict[str, Any]:
         await self.down()
@@ -39,7 +46,9 @@ class Migration:
             return self.config
 
         if self.conn is None:
-            raise RuntimeError("migration does not have database connection to use")
+            raise RuntimeError(
+                "migration does not have database connection to use"
+            )
 
         await self.conn.execute(
             f"UPDATE versions SET version={self.version} WHERE name='database';"
@@ -48,4 +57,6 @@ class Migration:
         return self.config
 
     async def down(self) -> None:
-        raise NotImplementedError(f"Migration {self.version}: Not possible to go down")
+        raise NotImplementedError(
+            f"Migration {self.version}: Not possible to go down"
+        )
