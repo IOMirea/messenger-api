@@ -32,8 +32,8 @@ def query_params(
                 repeating = get_repeating(req.query.keys())
 
                 if repeating is not None:
-                    raise web.HTTPBadRequest(
-                        reason=f"{repeating} parameter repeats in query"
+                    return web.json_response(
+                        {repeating: "Repeats in query"}, status=400
                     )
 
             req["query"] = {}
@@ -42,8 +42,8 @@ def query_params(
                 try:
                     if converter.default is None:
                         if name not in req.query:
-                            raise web.HTTPBadRequest(
-                                reason=f"Parameter {name} is missing from query"
+                            return web.json_response(
+                                {name: "Missing from query"}, status=400
                             )
 
                     req["query"][name] = await converter.convert(
@@ -51,12 +51,12 @@ def query_params(
                     )
                 except ConvertError as e:
                     server_log.debug(f"Parameter {name}: {e}")
-                    raise web.HTTPBadRequest(
-                        reason=f"Parameter {name}: should be of type {converter}"
+                    return web.json_response(
+                        {name: f"Should be of type {converter}"}, status=400
                     )
                 except CheckError as e:
                     server_log.debug(f"Parameter {name}: check failed: {e}")
-                    raise web.HTTPBadRequest(reason=f"Parameter {name}: {e}")
+                    return web.json_response({name: str(e)}, status=400)
 
             return await endpoint(req)
 
