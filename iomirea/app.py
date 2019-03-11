@@ -1,6 +1,6 @@
 import asyncio
 import argparse
-import ssl
+import ssl  # noqa
 
 import jinja2
 import aiohttp_jinja2
@@ -23,7 +23,9 @@ from db import create_postgres_connection, close_postgres_connection
 try:
     import uvloop
 except ImportError:
-    print("Warning: uvloop library not installed or not supported on your system")
+    print(
+        "Warning: uvloop library not installed or not supported on your system"
+    )
     print("Warning: Using default asyncio event loop")
 else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -42,7 +44,10 @@ async def on_startup(app: web.Application) -> None:
 
 if __name__ == "__main__":
     app = web.Application(
-        middlewares=[middlewares.error_handler, middlewares.match_info_validator]
+        middlewares=[
+            middlewares.error_handler,
+            middlewares.match_info_validator,
+        ]
     )
 
     app["args"] = argparser.parse_args()
@@ -70,13 +75,17 @@ if __name__ == "__main__":
     setup_logging(app)
 
     # templates setup
-    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader("iomirea/templates"))
+    aiohttp_jinja2.setup(
+        app, loader=jinja2.FileSystemLoader("iomirea/templates")
+    )
 
     # SSL setup
     # ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     # ssl_context.load_cert_chain('iomirea.ml.crt', 'iomirea.ml.key')
 
-    server_log.info(f'Running in {"debug" if app["args"].debug else "production"} mode')
+    server_log.info(
+        f'Running in {"debug" if app["args"].debug else "production"} mode'
+    )
 
     web.run_app(
         app,

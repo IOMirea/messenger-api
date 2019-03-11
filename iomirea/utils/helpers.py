@@ -23,7 +23,9 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
     return None
 
 
-def query_params(params: Dict[str, Any], unique: bool = False) -> DecoratedHandlerType:
+def query_params(
+    params: Dict[str, Any], unique: bool = False
+) -> DecoratedHandlerType:
     def deco(endpoint: HandlerType) -> HandlerType:
         async def wrapper(req: web.Request) -> web.Response:
             if unique:
@@ -40,8 +42,9 @@ def query_params(params: Dict[str, Any], unique: bool = False) -> DecoratedHandl
                 try:
                     if converter.default is None:
                         if name not in req.query:
-                            error_message = f"Parameter {name} is missing from query"
-                            break
+                            raise web.HTTPBadRequest(
+                                reason=f"Parameter {name} is missing from query"
+                            )
 
                     req["query"][name] = await converter.convert(
                         req.query.get(name, converter.default), req.app

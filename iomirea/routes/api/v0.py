@@ -1,7 +1,5 @@
 import json
 
-import asyncio
-
 from aiohttp import web
 
 from routes.api import v0_endpoints_public as endpoints_public
@@ -23,7 +21,9 @@ async def get_message(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     record = await req.config_dict["pg_conn"].fetchrow(
-        "SELECT * FROM messages WHERE channel_id=$1 AND id=$2;", channel_id, message_id
+        "SELECT * FROM messages WHERE channel_id=$1 AND id=$2;",
+        channel_id,
+        message_id,
     )
 
     if record is None:
@@ -36,8 +36,12 @@ async def get_message(req: web.Request) -> web.Response:
 @access.channel
 @helpers.query_params(
     {
-        "offset": converters.Integer(default=0, checks=[checks.BetweenXAndInt64(0)]),
-        "limit": converters.Integer(default=200, checks=[checks.Between(0, 200)]),
+        "offset": converters.Integer(
+            default=0, checks=[checks.BetweenXAndInt64(0)]
+        ),
+        "limit": converters.Integer(
+            default=200, checks=[checks.Between(0, 200)]
+        ),
     }
 )
 async def get_messages(req: web.Request) -> web.Response:
@@ -55,7 +59,9 @@ async def get_messages(req: web.Request) -> web.Response:
         offset,
     )
 
-    return web.json_response([Message.from_record(record).json for record in records])
+    return web.json_response(
+        [Message.from_record(record).json for record in records]
+    )
 
 
 @routes.get(endpoints_public.CHANNEL)

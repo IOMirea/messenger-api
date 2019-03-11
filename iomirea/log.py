@@ -1,9 +1,8 @@
 import os
-import asyncio
 import logging
 import traceback
 
-from typing import Optional, IO, List, Union
+from typing import Optional, IO
 
 import aiohttp
 
@@ -34,7 +33,9 @@ class AccessLogger(aiohttp.abc.AbstractAccessLogger):
 
 
 class RequestErrorRepoter(logging.StreamHandler):
-    def __init__(self, app: aiohttp.web.Application, **kwargs: Optional[IO[str]]):
+    def __init__(
+        self, app: aiohttp.web.Application, **kwargs: Optional[IO[str]]
+    ):
         super().__init__(**kwargs)
         self.app = app
 
@@ -46,7 +47,10 @@ class RequestErrorRepoter(logging.StreamHandler):
                 return
             else:
                 self.app.loop.run_in_executor(
-                    None, send_report, self._format_report_text(record), self.app
+                    None,
+                    send_report,
+                    self._format_report_text(record),
+                    self.app,
                 )
 
     def _format_report_text(self, record: logging.LogRecord) -> str:
@@ -55,7 +59,9 @@ class RequestErrorRepoter(logging.StreamHandler):
         if record.exc_info is not None:
             exc_name = record.exc_info[0].__class__.__name__
             exc_text = record.exc_info[1]
-            exc_traceback = "\n".join(traceback.format_tb(record.exc_info[2], 20))
+            exc_traceback = "\n".join(
+                traceback.format_tb(record.exc_info[2], 20)
+            )
         else:
             exc_name = "Unknown exception"
             exc_text = ""
@@ -114,13 +120,17 @@ def setup_logging(app: aiohttp.web.Application) -> None:
 
     access_stream_handler.setFormatter(
         logging.Formatter(
-            access_log_format, datefmt=log_config["basic-time-format"], style="{"
+            access_log_format,
+            datefmt=log_config["basic-time-format"],
+            style="{",
         )
     )
 
     access_file_handler.setFormatter(
         logging.Formatter(
-            access_log_format, datefmt=log_config["basic-time-format"], style="{"
+            access_log_format,
+            datefmt=log_config["basic-time-format"],
+            style="{",
         )
     )
 
