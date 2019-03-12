@@ -2,6 +2,8 @@ import asyncio
 import argparse
 import ssl
 
+from typing import Optional
+
 import jinja2
 import aiohttp_jinja2
 
@@ -32,8 +34,15 @@ else:
 
 
 argparser = argparse.ArgumentParser(description="IOMirea server")
+
 argparser.add_argument(
     "-d", "--debug", action="store_true", help="run server in debug mode"
+)
+
+argparser.add_argument(
+    "--force-ssl",
+    action="store_true",
+    help="run https server (certificates paths should be configured)",
 )
 
 
@@ -80,12 +89,14 @@ if __name__ == "__main__":
     )
 
     # SSL setup
-    if app["args"].debug:
-        ssl_context = None
-    else:
+    ssl_context: Optional[ssl.SSLContext] = None
+
+    if app["args"].force_ssl:
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_section = app["config"]["ssl"]
-        ssl_context.load_cert_chain(ssl_section["cert-chain-path"], ssl_section["cert-privkey-path"])
+        ssl_context.load_cert_chain(
+            ssl_section["cert-chain-path"], ssl_section["cert-privkey-path"]
+        )
 
     server_log.info(
         f'Running in {"debug" if app["args"].debug else "production"} mode'
@@ -94,6 +105,7 @@ if __name__ == "__main__":
     web.run_app(
         app,
         access_log_class=AccessLogger,
-        port=app["config"]["app-port"], ssl_context=ssl_context,
+        port=app["config"]["app-port"],
+        ssl_context=ssl_context,
         host="127.0.0.1",
     )
