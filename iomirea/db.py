@@ -45,7 +45,7 @@ class DBObject:
 
 # just a quick sketch, not full list of properties
 class User(DBObject):
-    _keys = {"bot": "bot"}
+    _keys = {"name": "name", "bot": "bot"}
 
 
 class Channel(DBObject):
