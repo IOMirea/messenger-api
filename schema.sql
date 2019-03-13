@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS messages_channel_index ON messages(channel_id);
 
 CREATE TABLE IF NOT EXISTS users (
 	id BIGINT PRIMARY KEY NOT NULL,
+	name VARCHAR(128) NOT NULL,
 	channel_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	last_read_message_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	bot BOOL NOT NULL

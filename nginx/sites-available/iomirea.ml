@@ -40,8 +40,8 @@ server {
     } # managed by Certbot
 
 
-	listen 80;
+    listen 80;
 
-	server_name iomirea.ml www.iomirea.ml;
+    server_name iomirea.ml www.iomirea.ml;
     return 404; # managed by Certbot
 }

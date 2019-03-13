@@ -1,11 +1,4 @@
 server {
-	listen 80;
-	server_name "";
-
-	return 301 $scheme://iomirea.tk$request_uri;
-}
-
-server {
 	listen 443 ssl;
 
 	server_name iomirea.tk www.iomirea.tk;
@@ -41,8 +34,8 @@ server {
     } # managed by Certbot
 
 
-	listen 80;
+    listen 80;
 
-	server_name iomirea.tk www.iomirea.tk;
+    server_name iomirea.tk www.iomirea.tk;
     return 404; # managed by Certbot
 }
