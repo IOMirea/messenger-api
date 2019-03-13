@@ -1,5 +1,7 @@
 import json
 
+from typing import Dict, List
+
 from aiohttp import web
 
 from routes.api import v0_endpoints_public as endpoints_public
@@ -143,11 +145,15 @@ async def get_file(req: web.Request) -> web.Response:
 
 @routes.get(endpoints_public.ENDPOINTS)
 async def get_public_endpoints(req: web.Request) -> web.Response:
-    values = [
-        getattr(endpoints_public, k)
-        for k in dir(endpoints_public)
-        if not k.startswith("__")
-    ]
-    values.sort()
+    endpoints: Dict[str, List[str]] = {}
 
-    return web.Response(text=json.dumps(values, indent=4))
+    for route in req.app.router.routes():
+        method = route.method
+        if method == "HEAD":
+            continue
+
+        path = route.resource.canonical
+
+        endpoints[path] = endpoints.get(path, []) + [method]
+
+    return web.Response(text=json.dumps(endpoints, indent=4, sort_keys=True))
