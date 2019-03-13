@@ -72,7 +72,7 @@ if __name__ == "__main__":
     OAuth2app = web.Application()
     OAuth2app.add_routes(oauth2_routes)
 
-    app.add_subapp("/oauth/", OAuth2app)
+    app.add_subapp("/oauth2/", OAuth2app)
 
     # API subapps
     APIv0app = web.Application()

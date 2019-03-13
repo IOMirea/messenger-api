@@ -201,7 +201,7 @@ async def main() -> None:
     conn = await asyncpg.connect(**get_db_credentials())
     if await is_db_filled(conn):
         print(
-            "Database is already filled. You should to clear tables before running this script"
+            "Database is already filled. You should clear tables before running this script"
         )
         return
 
