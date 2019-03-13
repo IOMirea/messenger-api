@@ -64,6 +64,23 @@ async def get_messages(req: web.Request) -> web.Response:
     )
 
 
+@routes.get(endpoints_public.PINNED_MESSAGES)
+@access.channel
+async def get_pins(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+
+    await ensure_existance(req, "channels", channel_id, "Channel")
+
+    records = await req.config_dict["pg_conn"].fetch(
+        "SELECT * FROM messages WHERE channel_id=$1 AND pinned=true",
+        channel_id,
+    )
+
+    return web.json_response(
+        [Message.from_record(record).json for record in records]
+    )
+
+
 @routes.get(endpoints_public.CHANNEL)
 @access.channel
 async def get_channel(req: web.Request) -> web.Response:
@@ -91,6 +108,23 @@ async def get_user(req: web.Request) -> web.Response:
         raise web.HTTPNotFound(reason="User not found")
 
     return web.json_response(User.from_record(record).json)
+
+
+@routes.get(endpoints_public.USER_CHANNELS)
+@access.user
+async def get_user_channels(req: web.Request) -> web.Response:
+    user_id = req["match_info"]["user_id"]
+
+    await ensure_existance(req, "users", user_id, "User")
+
+    records = await req.config_dict["pg_conn"].fetch(
+        "SELECT * FROM channels WHERE id=ANY((SELECT channel_ids FROM users WHERE id=$1)[:]);",
+        user_id,
+    )
+
+    return web.json_response(
+        [Channel.from_record(record).json for record in records]
+    )
 
 
 @routes.get(endpoints_public.FILE)

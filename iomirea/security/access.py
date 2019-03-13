@@ -12,13 +12,25 @@ def channel(endpoint: HandlerType) -> HandlerType:
         channel_id = req["match_info"]["channel_id"]
         user_id = 0  # TODO: get from token
 
-        result = await req.config_dict["pg_conn"].fetchrow(
+        result = await req.config_dict["pg_conn"].fetchval(
             "SELECT 1 FROM users WHERE id=$1 AND $2=ANY(channel_ids);",
             user_id,
             channel_id,
         )
 
         if result is None:
+            raise web.HTTPForbidden
+
+        return await endpoint(req)
+
+    return wrapper
+
+
+def user(endpoint: HandlerType) -> HandlerType:
+    async def wrapper(req: web.Request) -> web.Response:
+        # TODO: check token
+        user_id = 0  # TODO: get from token
+        if req["match_info"]["user_id"] != user_id:
             raise web.HTTPForbidden
 
         return await endpoint(req)

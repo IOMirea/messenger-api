@@ -47,6 +47,9 @@ async def match_info_validator(
         if not key.endswith("_id"):
             continue
 
+        if value == "@me":
+            value = "0"  # TODO: get id from token
+
         try:
             req["match_info"][key] = await converters.ID().convert(
                 value, req.app
