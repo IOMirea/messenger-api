@@ -156,4 +156,6 @@ async def get_public_endpoints(req: web.Request) -> web.Response:
 
         endpoints[path] = endpoints.get(path, []) + [method]
 
-    return web.Response(text=json.dumps(endpoints, indent=4, sort_keys=True))
+    return web.json_response(
+        text=json.dumps(endpoints, indent=4, sort_keys=True)
+    )
