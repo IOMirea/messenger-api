@@ -45,6 +45,10 @@ argparser.add_argument(
     help="run https server (certificates paths should be configured)",
 )
 
+argparser.add_argument(
+    "--with-eval", action="store_true", help="enable python eval endpoint"
+)
+
 
 async def on_startup(app: web.Application) -> None:
     # support for X-Forwarded headers
@@ -101,6 +105,23 @@ if __name__ == "__main__":
     server_log.info(
         f'Running in {"debug" if app["args"].debug else "production"} mode'
     )
+
+    # debug setup
+    if app["args"].debug:
+        from routes.debug import routes as debug_routes
+        from routes.debug import shutdown as debug_shutdown
+
+        Debugapp = web.Application()
+        Debugapp.add_routes(debug_routes)
+
+        Debugapp.on_cleanup.append(debug_shutdown)
+
+        app.add_subapp("/debug", Debugapp)
+
+        if app["args"].with_eval:
+            server_log.info(
+                f"Python eval endpoint launched at: {Debugapp.router['python-eval'].url_for()}"
+            )
 
     web.run_app(
         app,
