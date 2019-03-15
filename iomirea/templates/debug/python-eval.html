@@ -67,6 +67,10 @@
 			}
 
 			$('#eval').on('click', function() {
+				if (conn.readyState === conn.CLOSED) {
+					return false;
+				}
+
 				var program = $('#program');
 
 				var text = program.val();
