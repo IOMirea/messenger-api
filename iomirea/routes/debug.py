@@ -5,7 +5,7 @@ import textwrap
 import traceback
 
 from contextlib import redirect_stdout
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional, Union
 
 import aiohttp
 
@@ -28,7 +28,9 @@ routes = web.RouteTableDef()
     name="python-eval",
 )
 @aiohttp_jinja2.template("debug/python-eval.html")
-async def python_eval(req: web.Request) -> Dict[str, Any]:
+async def python_eval(
+    req: web.Request
+) -> Union[Dict[str, Any], web.StreamResponse]:
     if not req.config_dict["args"].with_eval:
         raise web.HTTPForbidden(reason="Python eval page not ebabled")
 
@@ -65,14 +67,10 @@ async def python_eval(req: web.Request) -> Dict[str, Any]:
                     "returned": str(returned),
                 }
             )
-        else:
-            break
-
-    await ws_current.close()
 
     req.app["eval-session"] = None
 
-    return {}
+    return ws_current
 
 
 async def eval_code(
@@ -82,7 +80,7 @@ async def eval_code(
 
     to_compile = "async def func():\n" + textwrap.indent(code, "  ")
 
-    glob = {"req": req, "app": req.app}
+    glob: Dict[str, Any] = {"req": req, "app": req.app}
 
     try:
         exec(to_compile, glob)

@@ -41,10 +41,6 @@
 			};
 
 			function displayEvalResult(stdout, traceback, returned) {
-				function escapeHTML(text) {
-					return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-				}
-
 				function appendText(objID, text) {
 					var control = $(objID);
 					var escaped = $('<div/>').text(text).html();
