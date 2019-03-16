@@ -13,6 +13,6 @@ FILES = r"/files"
 FILE = FILES + r"/{file_id}"
 
 BUGREPORTS = r"/bugreports"
-BUGREPORT = BUGREPORTS + r"/{report_id:\d+}"
+BUGREPORT = BUGREPORTS + r"/{report_id}"
 
 ENDPOINTS = r"/endpoints"

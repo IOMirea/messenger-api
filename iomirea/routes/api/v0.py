@@ -24,7 +24,7 @@ async def get_message(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     record = await req.config_dict["pg_conn"].fetchrow(
-        "SELECT * FROM messages WHERE channel_id=$1 AND id=$2;",
+        "SELECT * FROM messages WHERE channel_id=$1 AND id=$2",
         channel_id,
         message_id,
     )
@@ -56,7 +56,7 @@ async def get_messages(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     records = await req.config_dict["pg_conn"].fetch(
-        "SELECT * FROM messages WHERE channel_id=$1 ORDER BY id DESC LIMIT $2 OFFSET $3;",
+        "SELECT * FROM messages WHERE channel_id=$1 ORDER BY id LIMIT $2 OFFSET $3",
         channel_id,
         limit,
         offset,
@@ -90,7 +90,7 @@ async def get_channel(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
-        "SELECT * FROM channels WHERE id=$1;", channel_id
+        "SELECT * FROM channels WHERE id=$1", channel_id
     )
 
     if record is None:
@@ -121,7 +121,7 @@ async def get_user_channels(req: web.Request) -> web.Response:
     await ensure_existance(req, "users", user_id, "User")
 
     records = await req.config_dict["pg_conn"].fetch(
-        "SELECT * FROM channels WHERE id=ANY((SELECT channel_ids FROM users WHERE id=$1)[:]);",
+        "SELECT * FROM channels WHERE id=ANY((SELECT channel_ids FROM users WHERE id=$1)[:])",
         user_id,
     )
 
@@ -170,9 +170,23 @@ async def post_bugreport(req: web.Request) -> web.Response:
 
 @routes.get(endpoints_public.BUGREPORTS)
 @access.access_reports
+@helpers.query_params(
+    {
+        "offset": converters.Integer(
+            default=0, checks=[checks.BetweenXAndInt64(0)]
+        ),
+        "limit": converters.Integer(
+            default=200, checks=[checks.Between(0, 200)]
+        ),
+    }
+)
 async def get_bugreports(req: web.Request) -> web.Response:
+    query = req["query"]
+
     records = await req.config_dict["pg_conn"].fetch(
-        "SELECT * FROM bugreports"
+        "SELECT * FROM bugreports ORDER BY id LIMIT $1 OFFSET $2",
+        query["limit"],
+        query["offset"],
     )
 
     return web.json_response(
