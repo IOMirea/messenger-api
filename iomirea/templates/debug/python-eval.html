@@ -44,17 +44,20 @@
 				function appendText(objID, text) {
 					var control = $(objID);
 					var escaped = $('<div/>').text(text).html();
-                                        control.html(control.html() + escaped + '<br/><br/>');
+                                        control.html(control.html() + escaped);
                                         control.scrollTop(control.scrollTop() + 1000);
 				}
 
+				var stdoutText = '';
 				if (stdout) {
-                                	appendText('#stdout', stdout);
+					stdoutText += stdout+'\n';
 				}
 
 				if (traceback) {
-					appendText('#traceback', traceback);
+					stdoutText += '>>>>>>Traceback<<<<<<\n'+traceback+'\n';
 				}
+
+				appendText('#stdout', stdoutText)
 
 				if (returned) {
 					appendText('#returned', returned);
@@ -88,11 +91,12 @@
 				return false;
 			});
 
-			$('#program').on('keyup', function(e) {
+			$('#program').on('keydown', function(e) {
 				if (e.keyCode === 13 && e.shiftKey) {
 					$('#eval').click();
+					e.preventDefault();
 					
-					return true;
+					return false;
 				}
 			});
 		});
@@ -103,17 +107,14 @@
 		<p id="evaluation_status">Evaluation status: unknown</p>
 		<div>STDOUT:</div>
 		<div id="stdout"
-			style="height:12em;overflow:auto;border:1px solid black;white-space:pre"></div>
-		<div>TRACEBACK:</div>
-		<div id="traceback"
-			style="height:12em;overflow:auto;border:1px solid black;white-space:pre"></div>
+			style="height:15em;overflow:auto;border:1px solid black;white-space:pre"></div>
 		<div>RETURNED:</div>
 		<div id="returned"
-			style="height:8em;overflow:auto;border:1px solid black;white-space:pre"></div>
+			style="height:10em;overflow:auto;border:1px solid black;white-space:pre"></div>
 		<p>Fast eval: shift+enter</p>
 		<form id="evalInputForm" onsubmit="return false;">
 			<textarea id="program" class="scrollabletextbox"
-				style="width:100%;height:12em"></textarea>
+				style="width:100%;height:15em"></textarea>
 			<input id="eval" type="button" value="Eval" />
 		</form>
 </body>
