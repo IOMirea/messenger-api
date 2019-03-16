@@ -40,15 +40,20 @@ def query_params(
 
             for name, converter in params.items():
                 try:
-                    if converter.default is None:
+                    if not hasattr(converter, "default"):
                         if name not in req.query:
                             return web.json_response(
                                 {name: "Missing from query"}, status=400
                             )
 
-                    req["query"][name] = await converter.convert(
-                        req.query.get(name, converter.default), req.app
-                    )
+                    if name in req.query:
+                        req["query"][name] = await converter.convert(
+                            req.query[name], req.app
+                        )
+                    else:
+                        req["query"][name] = getattr(
+                            converter, "default"
+                        )  # not converting default value to type, be careful
                 except ConvertError as e:
                     server_log.debug(f"Parameter {name}: {e}")
                     return web.json_response(

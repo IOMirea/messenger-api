@@ -20,8 +20,10 @@ class Converter:
         "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
     )
 
-    def __init__(self, default: Any = None, checks: List[checks.Check] = []):
-        self.default = default
+    def __init__(self, checks: List[checks.Check] = [], **kwargs: Any):
+        if "default" in kwargs:
+            self.default = kwargs["default"]
+
         self.checks = checks
 
     async def convert(self, value: str, app: aiohttp.web.Application) -> Any:

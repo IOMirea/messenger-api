@@ -39,3 +39,10 @@ CREATE TABLE IF NOT EXISTS files (
 	mime SMALLINT NOT NULL,
 	hash UUID NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS bugreports (
+	id SERIAL PRIMARY KEY NOT NULL,
+	user_id BIGINT,
+	report_body TEXT NOT NULL,
+	device_info TEXT NOT NULL
+);

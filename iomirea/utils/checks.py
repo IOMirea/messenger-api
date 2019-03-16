@@ -88,6 +88,28 @@ class Greater(Check):
         )
 
 
+class LengthBetween(Between):
+    error_template = (
+        "Length should be between {1.lower_bound} and {1.upper_bound}"
+    )
+
+    async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
+        value_len = len(value)
+
+        left = (
+            value_len >= self.lower_bound
+            if self.inclusive_lower
+            else value_len > self.lower_bound
+        )
+        right = (
+            value_len <= self.upper_bound
+            if self.inclusive_upper
+            else value_len < self.upper_bound
+        )
+
+        return left and right
+
+
 class Custom(Check):
     def __init__(
         self,

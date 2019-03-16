@@ -1,11 +1,12 @@
 import json
 
 from typing import Dict, List
-
 from aiohttp import web
 
+import asyncpg
+
 from routes.api import v0_endpoints_public as endpoints_public
-from db import User, Channel, Message, File
+from db import User, Channel, Message, File, BugReport
 from utils.db import ensure_existance
 from utils import helpers, converters, checks
 from security import access
@@ -141,6 +142,55 @@ async def get_file(req: web.Request) -> web.Response:
         raise web.HTTPNotFound(reason="File not found")
 
     return web.json_response(File.from_record(record).json)
+
+
+@routes.post(endpoints_public.BUGREPORTS)
+@access.create_reports
+@helpers.query_params(
+    {
+        "user_id": converters.ID(default=None),
+        "body": converters.String(checks=[checks.LengthBetween(0, 4096)]),
+        "device_info": converters.String(
+            checks=[checks.LengthBetween(0, 4096)]
+        ),
+    }
+)
+async def post_bugreport(req: web.Request) -> web.Response:
+    query = req["query"]
+
+    await req.config_dict["pg_conn"].fetch(
+        "INSERT INTO bugreports (user_id, report_body, device_info) VALUES ($1, $2, $3)",
+        query["user_id"],
+        query["body"],
+        query["device_info"],
+    )
+
+    return web.json_response({"message": "Reported"})
+
+
+@routes.get(endpoints_public.BUGREPORTS)
+@access.access_reports
+async def get_bugreports(req: web.Request) -> web.Response:
+    records = await req.config_dict["pg_conn"].fetch(
+        "SELECT * FROM bugreports"
+    )
+
+    return web.json_response(
+        [BugReport.from_record(record).json for record in records]
+    )
+
+
+@routes.get(endpoints_public.BUGREPORT)
+@access.access_reports
+async def get_bugreport(req: web.Request) -> web.Response:
+    try:
+        record = await ensure_existance(
+            req, "bugreports", req["match_info"]["report_id"], "BugReport"
+        )
+    except asyncpg.exceptions.DataError:  # INT overflow
+        raise web.HTTPBadRequest(reason="Report id is too big")
+
+    return web.json_response(BugReport.from_record(record).json)
 
 
 @routes.get(endpoints_public.ENDPOINTS)

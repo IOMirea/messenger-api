@@ -36,3 +36,19 @@ def user(endpoint: HandlerType) -> HandlerType:
         return await endpoint(req)
 
     return wrapper
+
+
+def create_reports(endpoint: HandlerType) -> HandlerType:
+    async def wrapper(req: web.Request) -> web.Response:
+        # TODO: actual check
+        return await endpoint(req)
+
+    return wrapper
+
+
+def access_reports(endpoint: HandlerType) -> HandlerType:
+    async def wrapper(req: web.Request) -> web.Response:
+        # TODO: actual check
+        return await endpoint(req)
+
+    return wrapper

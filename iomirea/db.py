@@ -72,3 +72,11 @@ class File(DBObject):
         "channel_id": "channel_id",
         "mime": "mime",
     }
+
+
+class BugReport(DBObject):
+    _keys = {
+        "user_id": "user_id",
+        "report_body": "body",
+        "device_info": "device_info",
+    }
