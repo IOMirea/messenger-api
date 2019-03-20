@@ -32,8 +32,3 @@ class SnowflakeGenerator:
             | (self.machine_id << 5)
             | (self.sequence_number << 12)
         )
-
-
-g = SnowflakeGenerator()
-for i in range(MAX_SEQUENCE + 3):
-    print(g.gen_id(), g.sequence_number)
