@@ -6,6 +6,7 @@ jinja2
 aiohttp
 aiohttp_jinja2
 aiohttp_remotes
+bcrypt
 
 pre-commit
 pip-tools
