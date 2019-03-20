@@ -17,6 +17,7 @@ from routes.api.v0 import routes as api_v0_routes
 from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
+from models.snowflake import SnowflakeGenerator
 from config import Config
 from log import setup_logging, server_log, AccessLogger
 from db import create_postgres_connection, close_postgres_connection
@@ -56,15 +57,11 @@ async def on_startup(app: web.Application) -> None:
 
 
 if __name__ == "__main__":
-    app = web.Application(
-        middlewares=[
-            middlewares.error_handler,
-            middlewares.match_info_validator,
-        ]
-    )
+    app = web.Application()
 
     app["args"] = argparser.parse_args()
     app["config"] = Config("config.yaml")
+    app["sf_gen"] = SnowflakeGenerator()
 
     app.on_startup.append(create_postgres_connection)
     app.on_startup.append(on_startup)
@@ -72,17 +69,25 @@ if __name__ == "__main__":
 
     app.router.add_routes(misc_routes)
 
-    # OAuth2 subapp
-    OAuth2app = web.Application()
-    OAuth2app.add_routes(oauth2_routes)
-
-    app.add_subapp("/oauth2/", OAuth2app)
-
     # API subapps
-    APIv0app = web.Application()
-    APIv0app.add_routes(api_v0_routes)
+    APIApp = web.Application(
+        middlewares=[
+            middlewares.error_handler,
+            middlewares.match_info_validator,
+        ]
+    )
 
-    app.add_subapp("/api/v0/", APIv0app)
+    APIv0App = web.Application()
+    APIv0App.add_routes(api_v0_routes)
+
+    # OAuth2 subapp
+    OAuth2App = web.Application()
+    OAuth2App.add_routes(oauth2_routes)
+
+    APIApp.add_subapp("/v0/", APIv0App)
+    APIApp.add_subapp("/oauth2/", OAuth2App)
+
+    app.add_subapp("/api/", APIApp)
 
     # logging setup
     setup_logging(app)

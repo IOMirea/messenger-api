@@ -1,8 +1,8 @@
 server {
-        listen 80;
-        server_name "";
+	listen 80;
+	server_name "";
 
-        return 301 $scheme://iomirea.ml$request_uri;
+	return 301 $scheme://iomirea.ml$request_uri;
 }
 
 server {
@@ -16,32 +16,31 @@ server {
 	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
 	location / {
-                include proxy_params;
-
-		proxy_redirect   off;
-		proxy_buffering  off;
-
-		proxy_pass http://iomirea;
+		include proxy_params;
 
 		# redirect requests from /api/* to the latest API endpoint /api/v0/*
 		rewrite ^/api/((?!v\d+).*)$ /api/v0/$1 permanent;
+
+		location /api/oauth2/ {
+			include proxy_params;
+		}
 	}
 }
 
 
 server {
-    if ($host = www.iomirea.ml) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
+	if ($host = www.iomirea.ml) {
+		return 301 https://$host$request_uri;
+	} # managed by Certbot
 
 
-    if ($host = iomirea.ml) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
+	if ($host = iomirea.ml) {
+		return 301 https://$host$request_uri;
+	} # managed by Certbot
 
 
-    listen 80;
+	listen 80;
 
-    server_name iomirea.ml www.iomirea.ml;
-    return 404; # managed by Certbot
+	server_name iomirea.ml www.iomirea.ml;
+	return 404; # managed by Certbot
 }
