@@ -2,7 +2,7 @@ import time
 from math import floor
 
 
-EPOCH_OFFSET = 1546300800
+EPOCH_OFFSET = 1546300800000
 MAX_SEQUENCE = 2 ** 12 - 1
 
 
@@ -24,10 +24,16 @@ class SnowflakeGenerator:
         return self.sequence_number
 
     def gen_id(self) -> int:
-        timestamp = self.gen_timestamp()
         self.update_sequence()
+
+        print(
+            self.gen_timestamp(),
+            self.datacenter_id,
+            self.machine_id,
+            self.sequence_number,
+        )
         return int(
-            (timestamp << 22)
+            (self.gen_timestamp() << 22)
             | (self.datacenter_id << 5)
             | (self.machine_id << 5)
             | (self.sequence_number << 12)
