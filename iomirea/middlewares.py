@@ -4,7 +4,7 @@ from typing import Callable, Awaitable
 from aiohttp import web
 
 from log import server_log
-from utils import converters
+from models import converters
 
 
 HandlerType = Callable[[web.Request], Awaitable[web.Response]]

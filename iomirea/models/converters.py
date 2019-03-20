@@ -4,7 +4,7 @@ from typing import Any, List
 
 import aiohttp
 
-from utils import checks
+from models import checks
 from errors import ConvertError, CheckError
 
 

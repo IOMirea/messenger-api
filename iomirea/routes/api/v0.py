@@ -7,8 +7,9 @@ import asyncpg
 
 from routes.api import v0_endpoints_public as endpoints_public
 from db import User, Channel, Message, File, BugReport
+from utils import helpers
 from utils.db import ensure_existance
-from utils import helpers, converters, checks
+from models import converters, checks
 from security import access
 
 
