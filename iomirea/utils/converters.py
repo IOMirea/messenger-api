@@ -5,14 +5,7 @@ from typing import Any, List
 import aiohttp
 
 from utils import checks
-
-
-class ConvertError(ValueError):
-    pass
-
-
-class CheckError(ValueError):
-    pass
+from errors import ConvertError, CheckError
 
 
 class Converter:

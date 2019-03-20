@@ -3,7 +3,7 @@ from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
 from aiohttp import web
 
 from log import server_log
-from utils.converters import ConvertError, CheckError
+from errors import ConvertError, CheckError
 
 
 HandlerType = Callable[[web.Request], Awaitable[web.Response]]
