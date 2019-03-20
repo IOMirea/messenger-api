@@ -1,4 +1,4 @@
-from typing import Any, Callable, Awaitable
+from typing import Any, Callable, Awaitable, Optional
 
 import aiohttp
 
@@ -110,12 +110,27 @@ class LengthBetween(Between):
         return left and right
 
 
+class Equals(Check):
+    def __init__(self, other: Any):
+        self.other = other
+
+    async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
+        return value == self.other
+
+
 class Custom(Check):
     def __init__(
         self,
         custom_fn: Callable[[Any, aiohttp.web.Application], Awaitable[bool]],
+        error_template: str = Check.error_template,
+        name: Optional[str] = None,
     ):
         self.custom_fn = custom_fn
+        self.error_template = error_template
+        self._name = name
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
         return await self.custom_fn(value, app)
+
+    def __str__(self) -> str:
+        return super().__str__() if self._name is None else self._name

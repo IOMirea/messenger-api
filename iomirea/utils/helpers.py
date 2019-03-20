@@ -3,6 +3,7 @@ from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
 from aiohttp import web
 
 from log import server_log
+from models import converters
 from errors import ConvertError, CheckError
 
 
@@ -24,7 +25,7 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
 
 
 def query_params(
-    params: Dict[str, Any], unique: bool = False
+    params: Dict[str, converters.Converter], unique: bool = False
 ) -> DecoratedHandlerType:
     def deco(endpoint: HandlerType) -> HandlerType:
         async def wrapper(req: web.Request) -> web.Response:
