@@ -26,12 +26,6 @@ class SnowflakeGenerator:
     def gen_id(self) -> int:
         self.update_sequence()
 
-        print(
-            self.gen_timestamp(),
-            self.datacenter_id,
-            self.machine_id,
-            self.sequence_number,
-        )
         return int(
             (self.gen_timestamp() << 22)
             | (self.datacenter_id << 5)
