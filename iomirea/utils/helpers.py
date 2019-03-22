@@ -25,12 +25,19 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
 
 
 def query_params(
-    params: Dict[str, converters.Converter], unique: bool = False
+    params: Dict[str, converters.Converter],
+    unique: bool = False,
+    from_body: bool = False,
 ) -> DecoratedHandlerType:
     def deco(endpoint: HandlerType) -> HandlerType:
         async def wrapper(req: web.Request) -> web.Response:
+            if from_body:
+                query = await req.post()
+            else:
+                query = req.query
+
             if unique:
-                repeating = get_repeating(req.query.keys())
+                repeating = get_repeating(query.keys())
 
                 if repeating is not None:
                     return web.json_response(
@@ -42,14 +49,14 @@ def query_params(
             for name, converter in params.items():
                 try:
                     if not hasattr(converter, "default"):
-                        if name not in req.query:
+                        if name not in query:
                             return web.json_response(
                                 {name: "Missing from query"}, status=400
                             )
 
-                    if name in req.query:
+                    if name in query:
                         req["query"][name] = await converter.convert(
-                            req.query[name], req.app
+                            query[name], req.app
                         )
                     else:
                         req["query"][name] = getattr(
