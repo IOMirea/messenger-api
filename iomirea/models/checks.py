@@ -111,6 +111,8 @@ class LengthBetween(Between):
 
 
 class Equals(Check):
+    error_template = "Should be equal to {1.other}"
+
     def __init__(self, other: Any):
         self.other = other
 

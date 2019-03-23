@@ -1,8 +1,9 @@
 import time
 from math import floor
 
+from constants import EPOCH_OFFSET_MS
 
-EPOCH_OFFSET = 1546300800000
+
 MAX_SEQUENCE = 2 ** 12 - 1
 
 
@@ -13,7 +14,7 @@ class SnowflakeGenerator:
         self.sequence_number = -1
 
     def gen_timestamp(self) -> int:
-        return floor(time.time() * 1000) - EPOCH_OFFSET
+        return floor(time.time() * 1000) - EPOCH_OFFSET_MS
 
     def update_sequence(self) -> int:
         if self.sequence_number == MAX_SEQUENCE:
