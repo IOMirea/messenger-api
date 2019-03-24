@@ -22,6 +22,10 @@ postgresql:
   password: POSTGRES-PASSWORD
   port: 5432
   user: POSTGRES-USER
+redis:
+  host: localhost
+  password: null
+  port: 6380
 ssl:
   cert-chain-path: CERT-CHAIN-PATH
   cert-privkey-path: CERT-PRIVKEY-PATH

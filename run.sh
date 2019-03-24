@@ -14,6 +14,8 @@ while true; do
         break
     fi
 
+    redis-server redis.conf
+
     python3 iomirea/app.py "$@"
     exit_code=$?
 

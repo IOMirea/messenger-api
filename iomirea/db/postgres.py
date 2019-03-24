@@ -3,14 +3,20 @@ from typing import Dict, TypeVar, Type
 import asyncpg
 import aiohttp
 
+from log import server_log
+
 
 async def create_postgres_connection(app: aiohttp.web.Application) -> None:
+    server_log.info("Creating postgres connection")
+
     connection = await asyncpg.connect(**app["config"].postgresql)
 
     app["pg_conn"] = connection
 
 
 async def close_postgres_connection(app: aiohttp.web.Application) -> None:
+    server_log.info("Closing postgres connection")
+
     await app["pg_conn"].close()
 
 

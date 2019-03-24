@@ -20,7 +20,9 @@ from routes.misc import routes as misc_routes
 from models.snowflake import SnowflakeGenerator
 from config import Config
 from log import setup_logging, server_log, AccessLogger
-from db import create_postgres_connection, close_postgres_connection
+
+from db.postgres import create_postgres_connection, close_postgres_connection
+from db.redis import create_redis_connection, close_redis_connection
 
 
 try:
@@ -64,8 +66,11 @@ if __name__ == "__main__":
     app["sf_gen"] = SnowflakeGenerator()
 
     app.on_startup.append(create_postgres_connection)
+    app.on_startup.append(create_redis_connection)
     app.on_startup.append(on_startup)
+
     app.on_cleanup.append(close_postgres_connection)
+    app.on_cleanup.append(close_redis_connection)
 
     app.router.add_routes(misc_routes)
 
