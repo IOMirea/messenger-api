@@ -6,6 +6,7 @@ import uuid
 from typing import Dict, Any, Callable, List
 
 import asyncpg
+import bcrypt
 import yaml
 
 
@@ -21,10 +22,10 @@ sample_file_mimes = range(10)
 
 def profiler(task_name: str) -> Callable[[Any], Any]:
     def decorator(fn: Callable[[Any], Any]) -> Callable[[Any], Any]:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             print(f">{task_name}")
             start = time.time()
-            result = fn(*args, **kwargs)  # type: ignore
+            result = await fn(*args, **kwargs)  # type: ignore
             print(f"<Finished in {round((time.time() - start)*1000, 3)}s")
             return result
 
@@ -58,6 +59,8 @@ class User(RandObject):
             self.name = "Test Bob"
             self.channel_ids = list(range(10))
             self.bot = False
+            self.email = 'test-bob@gmail.com'
+            self.password = bcrypt.hashpw(self.name.encode(), bcrypt.gensalt())
             return
 
         self.name = random.choice(sample_names)
@@ -68,6 +71,8 @@ class User(RandObject):
                 self.channel_ids.append(channel_id)
 
         self.bot = random.random() > 0.5
+        self.email = 'email@gmail.com'
+        self.password = bcrypt.hashpw(self.name.encode(), bcrypt.gensalt())
 
 
 class Message(RandObject):
@@ -125,13 +130,13 @@ files = {}
 async def populate_users(conn: asyncpg.Connection) -> None:
     global users
     query = await conn.prepare(
-        "INSERT INTO users (id, name, channel_ids, bot) VALUES ($1, $2, $3, $4)"
+        "INSERT INTO users (id, name, channel_ids, bot, email, password) VALUES ($1, $2, $3, $4, $5, $6)"
     )
 
     for i in range(100):
         user = User(i)
         users[i] = user
-        await query.fetch(user.id, user.name, user.channel_ids, user.bot)
+        await query.fetch(user.id, user.name, user.channel_ids, user.bot, user.email, user.password)
 
 
 @profiler("Creating messages")
