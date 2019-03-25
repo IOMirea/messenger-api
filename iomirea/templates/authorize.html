@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<html>
+	<head>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script language="javascript" type="text/javascript">
+     		$(function() {
+			var wsUri = (window.location.protocol=='https:'&&'wss://'||'ws://')+window.location.host+window.location.pathname;
+			var conn = new WebSocket(wsUri);
+
+			conn.onmessage = function(e) {
+				switch (e.data) {
+				case  'auth_success':
+					// TODO: redirect
+					break;
+				case  'auth_fail':
+					alert('Bad login or password!')
+					break;
+				}
+			};
+
+			$('#auth_form').on('submit', function() {
+				conn.send(
+					JSON.stringify({
+						"login": $('#login_field').val(),
+						"password": $('#pass_field').val()
+					})
+				)
+
+				return false;
+			});
+
+		});
+		</script>
+	</head>
+	<body>
+		<form id="auth_form" onsubmit="return false;">
+			Login<br>
+			<input type="text" id="login_field"><br>
+			Password<br>
+			<input type="text" id="pass_field"><br><br>
+			<input type="submit">
+		</form>
+</body>
+</html>

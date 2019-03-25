@@ -17,7 +17,6 @@ from routes.api.v0 import routes as api_v0_routes
 from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
-
 from models.snowflake import SnowflakeGenerator
 from config import Config
 from log import setup_logging, server_log, AccessLogger
@@ -89,6 +88,7 @@ if __name__ == "__main__":
     # OAuth2 subapp
     OAuth2App = web.Application()
     OAuth2App.add_routes(oauth2_routes)
+    OAuth2App["auth_sessions"] = {}
 
     APIApp.add_subapp("/v0/", APIv0App)
     APIApp.add_subapp("/oauth2/", OAuth2App)
