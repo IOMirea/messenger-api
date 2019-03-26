@@ -4,32 +4,40 @@ from math import floor
 from constants import EPOCH_OFFSET_MS
 
 
-MAX_SEQUENCE = 2 ** 12 - 1
+WORKER_BITS = 5
+DATACENTER_BITS = 5
+SEQUENCE_BITS = 12
+
+MAX_WORKER_ID = -1 ^ (-1 << WORKER_BITS)
+MAX_DATACENTER_ID = -1 ^ (-1 << DATACENTER_BITS)
+
+WORKER_SHIFT = SEQUENCE_BITS
+DATACENTER_SHIFT = SEQUENCE_BITS + WORKER_BITS
+TIMESTAMP_SHIFT = SEQUENCE_BITS + WORKER_BITS + DATACENTER_BITS
+
+SEQUENCE_MASK = -1 ^ (-1 << SEQUENCE_BITS)
 
 
 class SnowflakeGenerator:
-    def __init__(self, datacenter_id: int = 0, machine_id: int = 0):
+    def __init__(self, worker_id: int = 0, datacenter_id: int = 0):
+        # TODO: range checks for worker_id and datacenter_id
+        self.worker_id = worker_id
         self.datacenter_id = datacenter_id
-        self.machine_id = machine_id
-        self.sequence_number = -1
+        # TODO: use last_timestamp, start sequence from 0
+        self.sequence = -1
 
     def gen_timestamp(self) -> int:
         return floor(time.time() * 1000) - EPOCH_OFFSET_MS
 
-    def update_sequence(self) -> int:
-        if self.sequence_number == MAX_SEQUENCE:
-            self.sequence_number = 0
-        else:
-            self.sequence_number += 1
-
-        return self.sequence_number
+    def update_sequence(self) -> None:
+        self.sequence = (self.sequence + 1) & SEQUENCE_MASK
 
     def gen_id(self) -> int:
         self.update_sequence()
 
         return int(
-            (self.gen_timestamp() << 22)
-            | (self.datacenter_id << 5)
-            | (self.machine_id << 5)
-            | (self.sequence_number << 12)
+            (self.gen_timestamp() << TIMESTAMP_SHIFT)
+            | (self.datacenter_id << DATACENTER_SHIFT)
+            | (self.worker_id << WORKER_SHIFT)
+            | self.sequence
         )
