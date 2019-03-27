@@ -5,41 +5,46 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script language="javascript" type="text/javascript">
      		$(function() {
-			var wsUri = (window.location.protocol=='https:'&&'wss://'||'ws://')+window.location.host+window.location.pathname;
-			var conn = new WebSocket(wsUri);
+			var redirect_uri = "{{ redirect_uri }}"
+			var app_name = "{{ app_name }}"
+			var scope = "{{ scope }}"
 
-			conn.onmessage = function(e) {
-				switch (e.data) {
-				case  'auth_success':
-					// TODO: redirect
-					break;
-				case  'auth_fail':
-					alert('Bad login or password!')
-					break;
+			var xhr = new XMLHttpRequest();
+
+			xhr.onreadystatechange = function() {
+				if (this.readyState !== XMLHttpRequest.DONE) {
+					return
 				}
-			};
 
-			$('#auth_form').on('submit', function() {
-				conn.send(
-					JSON.stringify({
-						"login": $('#login_field').val(),
-						"password": $('#pass_field').val()
-					})
-				)
+				if (this.status !== 200) {
+					alert('Wrong login or password')
+				} else {
+					if (redirect_uri.includes("?")) {
+						delim = "&"
+					} else {
+						delim = "?"
+					}
+					window.location.href = redirect_uri+delim+'code='+this.response.text
+				}
+			}
 
-				return false;
-			});
-
+			$('#auth_form').on('submit', function(e) {
+				xhr.open('POST', window.location.href, true)
+	                        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+				xhr.send('login='+$('#login_field').val()+'&password='+$('#password_field').val())
+			})
 		});
 		</script>
 	</head>
 	<body>
 		<form id="auth_form" onsubmit="return false;">
+			Scope: {{ scope }}<br>
+			App Name: {{ app_name }}<br>
 			Login<br>
-			<input type="text" id="login_field"><br>
+			<input type="text" id="login_field" name="login"><br>
 			Password<br>
-			<input type="text" id="pass_field"><br><br>
-			<input type="submit">
+			<input type="text" id="password_field" name="password"><br><br>
+			<input type="submit" value="login">
 		</form>
 </body>
 </html>

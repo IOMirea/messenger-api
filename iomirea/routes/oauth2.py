@@ -1,14 +1,28 @@
-import json
+import hmac
 
-from typing import Any, Union, Dict
+from typing import Any, Union, Dict, List
 
-import aiohttp
 import aiohttp_jinja2
 
 from aiohttp import web
 
-from log import server_log
+from models import converters, checks
+from utils import helpers
+from constants import EXISTING_SCOPES
 from security.security_checks import check_user_password
+
+
+class Scope(converters.Converter):
+    async def _convert(self, value: str, app: web.Application) -> List[str]:
+        scopes: List[str] = []
+
+        for i, scope in enumerate(value.split(" ")):
+            if scope not in EXISTING_SCOPES:
+                raise ValueError
+            if scope not in scopes:
+                scopes.append(scope)
+
+        return scopes
 
 
 routes = web.RouteTableDef()
@@ -16,64 +30,86 @@ routes = web.RouteTableDef()
 
 @routes.get("/authorize")
 @aiohttp_jinja2.template("authorize.html")
+@helpers.query_params(
+    {
+        "response_type": converters.String(checks=[checks.Equals("code")]),
+        "client_id": converters.ID(),
+        "scope": Scope(default=["user"]),
+        "redirect_uri": converters.String(),
+    },
+    unique=True,
+)
 async def authorize(
     req: web.Request
 ) -> Union[Dict[str, Any], web.StreamResponse]:
-    ws_current = web.WebSocketResponse()
-    ws_ready = ws_current.can_prepare(req)
-    if not ws_ready.ok:
-        return {}
+    query = req["query"]
+    # TODO: check scope items
+    # TODO: check redirect_uri
 
-    await ws_current.prepare(req)
+    record = await req.config_dict["pg_conn"].fetchval(
+        "SELECT (name, redirect_uri) FROM applications WHERE id = $1",
+        query["client_id"],
+    )
 
-    # TODO: get app_id from parameters
-    app_id = 0
+    if record is None:
+        raise web.HTTPBadRequest(reason="Application not found in database")
 
-    session_key = f"{req.host}-{app_id}"
-    req.app["auth_sessions"][session_key] = ws_current
+    if record[1] != query["redirect_uri"]:
+        raise web.HTTPBadRequest(reason="Bad redirect_uri passed")
 
-    async for msg in ws_current:
-        if msg.type != aiohttp.WSMsgType.text:
-            server_log.info(
-                f"authorize: Unknown websocket message type received: {msg.type}."
-                f"Closing session {session_key}"
-            )
-            break
-
-        try:
-            json_data = json.loads(msg.data)
-            login, password = json_data["login"], json_data["password"]
-        except (KeyError, json.JSONDecodeError):
-            server_log.info(
-                f"authorize: Bad json received."
-                f"Closing session {session_key}"
-            )
-            await ws_current.close()
-            break
-
-        record = await req.config_dict["pg_conn"].fetchval(
-            # NOTICE: do we need id here?
-            "SELECT (id, password) FROM users WHERE email = $1",
-            login,
-        )
-
-        if record is None:
-            await ws_current.send_str("auth_fail")
-            continue
-
-        if not await check_user_password(password, record[1]):
-            await ws_current.send_str("auth_fail")
-            continue
-
-        await ws_current.send_str("auth_success")
-        await ws_current.close()
-
-    del req.app["auth_sessions"][session_key]
-
-    return ws_current
+    return {
+        "redirect_uri": record[1],
+        "app_name": record[0],
+        "scope": " ".join(query["scope"]),
+    }
 
 
-@routes.post("/token")
+@routes.post("/authorize")
+@helpers.query_params(
+    {
+        "response_type": converters.String(checks=[checks.Equals("code")]),
+        "client_id": converters.ID(),
+        "scope": Scope(default=["user"]),
+        "redirect_uri": converters.String(),
+    },
+    unique=True,
+)
+@helpers.query_params(
+    {"login": converters.String(), "password": converters.String()},
+    unique=True,
+    from_body=True,
+)
+async def post_authorize(req: web.Request) -> web.Response:
+    query = req["query"]
+    print(query)
+
+    record = await req.config_dict["pg_conn"].fetchval(
+        # NOTICE: do we need id here?
+        "SELECT (id, password) FROM users WHERE email = $1",
+        query["login"],
+    )
+
+    if record is None:
+        raise web.HTTPUnauthorized()
+
+    if not check_user_password(query["password"], record[1]):
+        raise web.HTTPUnauthorized()
+
+    message = ".".join(
+        [
+            str(query["client_id"]),
+            ".".join(query["scope"]),
+            query["redirect_uri"],
+        ]
+    )
+    code = hmac.new(
+        record[1], msg=message.encode(), digestmod="sha1"
+    ).hexdigest()
+
+    return web.Response(text=code)
+
+
+@routes.post("/token", name="token")
 async def token(req: web.Request) -> web.Response:
     return web.json_response({"message": "token: WIP"})
 
