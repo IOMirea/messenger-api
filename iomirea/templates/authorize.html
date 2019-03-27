@@ -17,19 +17,28 @@
 					return
 				}
 
-				if (this.status !== 200) {
+				if (this.status === 401) {
 					alert('Wrong login or password')
-				} else {
+				} else if (this.status === 200) {
+					var delim
+
 					if (redirect_uri.includes("?")) {
 						delim = "&"
 					} else {
 						delim = "?"
 					}
+
 					var redirect = redirect_uri+delim+'code='+this.response
+					if (!(redirect.startsWith('http://') || redirect.startsWith('https://'))) {
+						redirect = '//' + redirect
+					}
 					if (state !== '') {
 						redirect += '&state='+state
 					}
-					window.location.href = redirect
+
+					window.location.assign(redirect)
+				} else {
+					alert('Something went terribly wrong. Please, try to refresh page or return back later')
 				}
 			}
 
