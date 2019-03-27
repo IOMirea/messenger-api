@@ -44,7 +44,7 @@ def query_params(
                         {repeating: "Repeats in query"}, status=400
                     )
 
-            req["query"] = {}
+            req["query"] = req.get("query", {})
 
             for name, converter in params.items():
                 try:
