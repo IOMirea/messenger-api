@@ -81,7 +81,6 @@ async def authorize(
 )
 async def post_authorize(req: web.Request) -> web.Response:
     query = req["query"]
-    print(query)
 
     record = await req.config_dict["pg_conn"].fetchval(
         # NOTICE: do we need id here?
@@ -92,7 +91,7 @@ async def post_authorize(req: web.Request) -> web.Response:
     if record is None:
         raise web.HTTPUnauthorized()
 
-    if not check_user_password(query["password"], record[1]):
+    if not await check_user_password(query["password"], record[1]):
         raise web.HTTPUnauthorized()
 
     message = ".".join(
