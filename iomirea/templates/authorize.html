@@ -8,6 +8,7 @@
 			var redirect_uri = "{{ redirect_uri }}"
 			var app_name = "{{ app_name }}"
 			var scope = "{{ scope }}"
+			var state = "{{ state }}"
 
 			var xhr = new XMLHttpRequest();
 
@@ -24,7 +25,11 @@
 					} else {
 						delim = "?"
 					}
-					window.location.href = redirect_uri+delim+'code='+this.response
+					var redirect = redirect_uri+delim+'code='+this.response
+					if (state !== '') {
+						redirect += '&state='+state
+					}
+					window.location.href = redirect
 				}
 			}
 

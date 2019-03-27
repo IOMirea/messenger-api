@@ -36,6 +36,7 @@ routes = web.RouteTableDef()
         "client_id": converters.ID(),
         "scope": Scope(default=["user"]),
         "redirect_uri": converters.String(),
+        "state": converters.String(default=""),
     },
     unique=True,
 )
@@ -61,6 +62,7 @@ async def authorize(
         "redirect_uri": record[1],
         "app_name": record[0],
         "scope": " ".join(query["scope"]),
+        "state": query["state"],
     }
 
 
@@ -71,6 +73,7 @@ async def authorize(
         "client_id": converters.ID(),
         "scope": Scope(default=["user"]),
         "redirect_uri": converters.String(),
+        "state": converters.String(default=""),
     },
     unique=True,
 )
@@ -108,7 +111,7 @@ async def post_authorize(req: web.Request) -> web.Response:
     return web.Response(text=code)
 
 
-@routes.post("/token", name="token")
+@routes.post("/token")
 async def token(req: web.Request) -> web.Response:
     return web.json_response({"message": "token: WIP"})
 
