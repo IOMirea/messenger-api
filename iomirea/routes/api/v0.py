@@ -154,7 +154,8 @@ async def get_file(req: web.Request) -> web.Response:
         "device_info": converters.String(
             checks=[checks.LengthBetween(0, 4096)]
         ),
-    }
+    },
+    from_body=True,
 )
 async def post_bugreport(req: web.Request) -> web.Response:
     query = req["query"]
