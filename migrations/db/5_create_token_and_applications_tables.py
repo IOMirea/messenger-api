@@ -1,11 +1,8 @@
-from migration import Migration
+from migration import DBMigration
 
 
-class Migration5(Migration):
+class Migration(DBMigration):
     async def up(self, latest: int) -> None:
-        if self.conn is None:
-            raise RuntimeError("database connection is None")
-
         await self.conn.fetch(
             """
             CREATE TABLE IF NOT EXISTS tokens (
@@ -24,6 +21,6 @@ class Migration5(Migration):
                 redirect_uri TEXT PRIMARY KEY NOT NULL,
                 id BIGINT,
                 name VARCHAR(256)
-            );
+            )
             """
         )

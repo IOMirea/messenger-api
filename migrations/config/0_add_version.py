@@ -1,6 +1,6 @@
-from migration import Migration
+from migration import ConfigMigration
 
 
-class Migration0(Migration):
+class Migration(ConfigMigration):
     async def up(self, latest: int) -> None:
         pass

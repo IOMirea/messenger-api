@@ -1,11 +1,8 @@
-from migration import Migration
+from migration import DBMigration
 
 
-class Migration6(Migration):
+class Migration(DBMigration):
     async def up(self, latest: int) -> None:
-        if self.conn is None:
-            raise RuntimeError("database connection is None")
-
         await self.conn.execute(
             "ALTER TABLE applications DROP CONSTRAINT applications_pkey;"
             "ALTER TABLE applications ADD PRIMARY KEY (id);"

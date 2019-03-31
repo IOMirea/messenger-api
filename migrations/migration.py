@@ -1,62 +1,62 @@
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 
 import asyncpg
 
 
-# TODO: separate to ConfigMigartion and DBMigration
-
-
-class Migration:
-    def __init__(
-        self,
-        config: Dict[str, Any],
-        version: int,
-        connection: Optional[asyncpg.Connection] = None,
-    ):
-        self.config = config
+class BaseMigration:
+    def __init__(self, version: int):
         self.version = version
-        self.conn = connection
 
-    async def _up(self, latest: int, config: bool) -> Dict[str, Any]:
-        await self.up(latest)
-        if config:
-            self.config["config-version"] = self.version
-            return self.config
-
-        if self.conn is None:
-            raise RuntimeError(
-                "migration does not have database connection to use"
-            )
-
-        await self.conn.execute(
-            f"UPDATE versions SET version={self.version} WHERE name='database';"
-        )
-
-        return self.config
+    async def _up(self, latest: int) -> Any:
+        raise NotImplementedError
 
     async def up(self, latest: int) -> None:
         raise NotImplementedError(
             f"Migration {self.version}: Not possible to go up"
         )
 
-    async def _down(self, config: bool) -> Dict[str, Any]:
-        await self.down()
-        if config:
-            self.config["config_version"] = self.version
-            return self.config
-
-        if self.conn is None:
-            raise RuntimeError(
-                "migration does not have database connection to use"
-            )
-
-        await self.conn.execute(
-            f"UPDATE versions SET version={self.version} WHERE name='database';"
-        )
-
-        return self.config
+    async def _down(self) -> Any:
+        raise NotImplementedError
 
     async def down(self) -> None:
         raise NotImplementedError(
             f"Migration {self.version}: Not possible to go down"
         )
+
+
+class DBMigration(BaseMigration):
+    def __init__(self, version: int, connection: asyncpg.Connection):
+        super().__init__(version)
+
+        self.conn = connection
+
+    async def _up(self, latest: int) -> None:
+        await self.up(latest)
+
+        await self.conn.fetch(
+            f"UPDATE versions SET version={self.version} WHERE name='database'"
+        )
+
+    async def _down(self) -> None:
+        await self.down()
+
+
+class ConfigMigration(BaseMigration):
+    def __init__(self, version: int, config: Dict[str, Any]):
+        super().__init__(version)
+
+        self.config = config
+
+    async def _up(self, latest: int) -> Dict[str, Any]:
+        await self.up(latest)
+
+        self.config["config-version"] = self.version
+
+        return self.config
+
+    async def _down(self) -> Dict[str, Any]:
+        await self.down()
+
+        self.config["config_version"] = self.version
+
+        return self.config

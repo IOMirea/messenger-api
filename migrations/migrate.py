@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 
 import asyncpg
 
-from migration import Migration
+from migration import BaseMigration
 from utils import init_logger, migrate_log
 
 CONFIG_PATH = "config.yaml"
@@ -33,7 +33,7 @@ def get_migrations(
     path: str,
     config: Dict[str, Any],
     connection: Optional[asyncpg.Connection] = None,
-) -> List[Migration]:
+) -> List[BaseMigration]:
     migrations = []
 
     package_path_base = f'{".".join(path.split(os.path.sep)[1:])}.'
@@ -52,12 +52,14 @@ def get_migrations(
         except ValueError:
             continue
 
-        migrations.append(
-            getattr(
-                importlib.import_module(package_path_base + entry),
-                f"Migration{version}",
-            )(config, version, connection=connection)
+        migration_class = getattr(
+            importlib.import_module(package_path_base + entry), "Migration"
         )
+
+        if connection is None:  # config migration
+            migrations.append(migration_class(version, config))
+        else:
+            migrations.append(migration_class(version, connection))
 
     return migrations
 
@@ -83,7 +85,7 @@ async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
             migrate_log(f"Started  migration {m.version} ...")
 
             begin = time.time()
-            config = await m._up(latest, True)
+            config = await m._up(latest)
             end = time.time()
 
             migrate_log(
@@ -127,7 +129,7 @@ async def perform_db_migration(
             migrate_log(f"Started  migration {m.version} ...")
 
             begin = time.time()
-            await m._up(latest, False)
+            await m._up(latest)
             end = time.time()
 
             migrate_log(

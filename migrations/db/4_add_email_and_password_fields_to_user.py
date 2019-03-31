@@ -1,11 +1,8 @@
-from migration import Migration
+from migration import DBMigration
 
 
-class Migration4(Migration):
+class Migration(DBMigration):
     async def up(self, latest: int) -> None:
-        if self.conn is None:
-            raise RuntimeError("database connection is None")
-
         await self.conn.execute(
             "ALTER TABLE users ADD COLUMN email TEXT;"
             "ALTER TABLE users ADD COLUMN password BYTEA;"

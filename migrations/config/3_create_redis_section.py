@@ -1,7 +1,7 @@
-from migration import Migration
+from migration import ConfigMigration
 
 
-class Migration3(Migration):
+class Migration(ConfigMigration):
     async def up(self, latest: int) -> None:
         self.config["redis"] = {
             "host": "localhost",

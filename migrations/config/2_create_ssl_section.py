@@ -1,7 +1,7 @@
-from migration import Migration
+from migration import ConfigMigration
 
 
-class Migration2(Migration):
+class Migration(ConfigMigration):
     async def up(self, latest: int) -> None:
         self.config["ssl"] = {
             "cert-chain-path": "CERT-CHAIN-PATH",

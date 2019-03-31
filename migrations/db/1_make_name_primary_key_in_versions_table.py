@@ -1,17 +1,9 @@
-from migration import Migration
+from migration import DBMigration
 
 
-class Migration1(Migration):
+class Migration(DBMigration):
     async def up(self, latest: int) -> None:
-        if self.conn is None:
-            raise RuntimeError("database connection is None")
-
-        await self.conn.execute("ALTER TABLE versions ADD PRIMARY KEY (name);")
+        await self.conn.fetch("ALTER TABLE versions ADD PRIMARY KEY (name)")
 
     async def down(self) -> None:
-        if self.conn is None:
-            raise RuntimeError("database connection is None")
-
-        await self.conn.execute(
-            "ALTER TABLE versions DROP CONSTRAINT name_pkey;"
-        )
+        await self.conn.fetch("ALTER TABLE versions DROP CONSTRAINT name_pkey")
