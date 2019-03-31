@@ -2,7 +2,7 @@ server {
 	listen 80;
 	server_name "";
 
-	return 301 $scheme://iomirea.ml$request_uri;
+	return 307 $scheme://iomirea.ml$request_uri;
 }
 
 server {
@@ -19,7 +19,7 @@ server {
 		include proxy_params;
 
 		# redirect requests from /api/* to the latest API endpoint /api/v0/*
-		rewrite ^/api/((?!v\d+).*)$ /api/v0/$1 permanent;
+		rewrite ^/api/((?!v\d+).*)$ /api/v0/$1 last;
 
 		location /api/oauth2/ {
 			include proxy_params;
@@ -30,12 +30,12 @@ server {
 
 server {
 	if ($host = www.iomirea.ml) {
-		return 301 https://$host$request_uri;
+		return 307 https://$host$request_uri;
 	} # managed by Certbot
 
 
 	if ($host = iomirea.ml) {
-		return 301 https://$host$request_uri;
+		return 307 https://$host$request_uri;
 	} # managed by Certbot
 
 
