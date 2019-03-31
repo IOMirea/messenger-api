@@ -12,15 +12,13 @@ DEFAULT = object()
 
 
 class Converter:
-    error_template = (
-        "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
-    )
+    ERROR_TEMPLATE = "Failed to convert parameter to {type}: {error.__class__.__name__}({error})"
 
     def __init__(
         self,
         checks: List[checks.Check] = [],
         default: Any = DEFAULT,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self._default = default
         self._checks = checks
@@ -31,11 +29,11 @@ class Converter:
         except ConvertError:
             raise
         except Exception as e:
-            raise ConvertError(self.error_template.format(value, self, e))
+            raise ConvertError(self.error(value, e))
 
         for check in self._checks:
             if not await check.check(result, app):
-                raise CheckError(check.error_template.format(result, check))
+                raise CheckError(check.error(result))
 
         return result
 
@@ -52,8 +50,16 @@ class Converter:
 
         return self._default
 
+    def error(self, value: Any, e: Exception) -> str:
+        return self.ERROR_TEMPLATE.format(
+            {"value": value, "type": self, "error": e}
+        )
+
     def __str__(self) -> str:
         return self.__class__.__name__.lower()
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} checks={self._checks} default={self._default}"
 
 
 class Integer(Converter):

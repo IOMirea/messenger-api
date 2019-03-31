@@ -6,17 +6,25 @@ from constants import BIGINT64_MAX_POSITIVE
 
 
 class Check:
-    error_template = "Check {2} failed"
+    ERROR_TEMPLATE = "Check {check} failed"
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
         raise NotImplementedError
 
+    def error(self, value: Any) -> str:
+        return self.ERROR_TEMPLATE.format({"check": self, "value": value})
+
     def __str__(self) -> str:
         return self.__class__.__name__.lower()
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}>"
+
 
 class Between(Check):
-    error_template = "Should be between {1.lower_bound} and {1.upper_bound}"
+    ERROR_TEMPLATE = (
+        "Should be between {check.lower_bound} and {check.upper_bound}"
+    )
 
     def __init__(
         self,
@@ -59,7 +67,7 @@ class BetweenXAndInt64(Between):
 
 
 class Less(Check):
-    error_template = "Should be less than {1.upper_bound}"
+    ERROR_TEMPLATE = "Should be less than {check.upper_bound}"
 
     def __init__(self, upper_bound: Any, inclusive: bool = True):
         self.upper_bound = upper_bound
@@ -74,7 +82,7 @@ class Less(Check):
 
 
 class Greater(Check):
-    error_template = "Should be greater than {1.lower_bound}"
+    ERROR_TEMPLATE = "Should be greater than {check.lower_bound}"
 
     def __init__(self, lower_bound: Any, inclusive: bool = True):
         self.lower_bound = lower_bound
@@ -89,8 +97,8 @@ class Greater(Check):
 
 
 class LengthBetween(Between):
-    error_template = (
-        "Length should be between {1.lower_bound} and {1.upper_bound}"
+    ERROR_TEMPLATE = (
+        "Length should be between {check.lower_bound} and {check.upper_bound}"
     )
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
@@ -111,7 +119,7 @@ class LengthBetween(Between):
 
 
 class Equals(Check):
-    error_template = "Should be equal to {1.other}"
+    ERROR_TEMPLATE = "Should be equal to {check.other}"
 
     def __init__(self, other: Any):
         self.other = other
@@ -124,11 +132,11 @@ class Custom(Check):
     def __init__(
         self,
         custom_fn: Callable[[Any, aiohttp.web.Application], Awaitable[bool]],
-        error_template: str = Check.error_template,
+        error_template: str = Check.ERROR_TEMPLATE,
         name: Optional[str] = None,
     ):
         self.custom_fn = custom_fn
-        self.error_template = error_template
+        self.ERROR_TEMPLATE = error_template
         self._name = name
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
