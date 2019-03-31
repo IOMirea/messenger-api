@@ -21,7 +21,7 @@ async def error_handler(
     except web.HTTPException as e:
         status = e.status
         message = e.text
-    except (web.HTTPMethodNotAllowed, asyncio.CancelledError):
+    except asyncio.CancelledError:
         if req.config_dict["args"].debug:
             raise
 

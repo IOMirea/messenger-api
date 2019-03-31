@@ -34,17 +34,21 @@ def query_params(
 ) -> DecoratedHandlerType:
     def deco(endpoint: HandlerType) -> HandlerType:
         async def wrapper(req: web.Request) -> web.Response:
+            # TODO: check encoding
+
             if from_body:
                 query = await req.post()
+                query_name = "body"  # used in error messages
             else:
                 query = req.query
+                query_name = "query"  # used in error messages
 
             if unique:
                 repeating = get_repeating(query.keys())
 
                 if repeating is not None:
                     return web.json_response(
-                        {repeating: "Repeats in query"}, status=400
+                        {repeating: f"Repeats in {query_name}"}, status=400
                     )
 
             req["query"] = req.get("query", {})
@@ -54,7 +58,8 @@ def query_params(
                     if not hasattr(converter, "default"):
                         if name not in query:
                             return web.json_response(
-                                {name: "Missing from query"}, status=400
+                                {name: f"Missing from {query_name}"},
+                                status=400,
                             )
 
                     if name in query:

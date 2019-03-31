@@ -60,3 +60,7 @@ class ConfigMigration(BaseMigration):
         self.config["config_version"] = self.version
 
         return self.config
+
+
+# TODO: RedisMigration
+# TODO: rename DBMigration to PGMigration

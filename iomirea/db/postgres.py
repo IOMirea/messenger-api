@@ -85,4 +85,5 @@ class BugReport(DBObject):
         "user_id": "user_id",
         "report_body": "body",
         "device_info": "device_info",
+        "automatic": "automatic",
     }

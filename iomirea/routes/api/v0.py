@@ -160,21 +160,23 @@ async def get_file(req: web.Request) -> web.Response:
         "body": converters.String(checks=[checks.LengthBetween(0, 4096)]),
         "device_info": converters.String(
             checks=[checks.LengthBetween(0, 4096)]
-        ),  # TODO: "automatic" parameter
+        ),
+        "automatic": converters.Boolean(),
     },
     from_body=True,
 )
 async def post_bugreport(req: web.Request) -> web.Response:
     query = req["query"]
 
-    await req.config_dict["pg_conn"].fetch(
-        "INSERT INTO bugreports (user_id, report_body, device_info) VALUES ($1, $2, $3)",
+    bugreport_id = await req.config_dict["pg_conn"].fetchval(
+        "INSERT INTO bugreports (user_id, report_body, device_info, automatic) VALUES ($1, $2, $3, $4) RETURNING id",
         query["user_id"],
         query["body"],
         query["device_info"],
+        query["automatic"],
     )
 
-    return web.json_response({"message": "Reported"})
+    return web.json_response({"id": bugreport_id})
 
 
 @routes.get(endpoints_public.BUGREPORTS)
