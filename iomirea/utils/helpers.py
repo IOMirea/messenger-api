@@ -54,29 +54,29 @@ def query_params(
             req["query"] = req.get("query", {})
 
             for name, converter in params.items():
-                try:
-                    if not hasattr(converter, "default"):
-                        if name not in query:
-                            return web.json_response(
-                                {name: f"Missing from {query_name}"},
-                                status=400,
-                            )
-
-                    if name in query:
-                        req["query"][name] = await converter.convert(
-                            query[name], req.app
+                if name not in query:
+                    try:
+                        # not converting default value to type, be careful
+                        req["query"][name] = converter.get_default()
+                        continue
+                    except KeyError:  # no default value
+                        return web.json_response(
+                            {name: f"Missing from {query_name}"}, status=400
                         )
-                    else:
-                        req["query"][name] = getattr(
-                            converter, "default"
-                        )  # not converting default value to type, be careful
+
+                try:
+                    req["query"][name] = await converter.convert(
+                        query[name], req.app
+                    )
                 except ConvertError as e:
                     server_log.debug(f"Parameter {name}: {e}")
+
                     return web.json_response(
                         {name: f"Should be of type {converter}"}, status=400
                     )
                 except CheckError as e:
                     server_log.debug(f"Parameter {name}: check failed: {e}")
+
                     return web.json_response({name: str(e)}, status=400)
 
             return await endpoint(req)

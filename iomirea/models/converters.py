@@ -8,16 +8,22 @@ from models import checks
 from errors import ConvertError, CheckError
 
 
+DEFAULT = object()
+
+
 class Converter:
     error_template = (
         "Failed to convert parameter to {1}: {2.__class__.__name__}({2})"
     )
 
-    def __init__(self, checks: List[checks.Check] = [], **kwargs: Any):
-        if "default" in kwargs:
-            self.default = kwargs["default"]
-
-        self.checks = checks
+    def __init__(
+        self,
+        checks: List[checks.Check] = [],
+        default: Any = DEFAULT,
+        **kwargs: Any
+    ):
+        self._default = default
+        self._checks = checks
 
     async def convert(self, value: str, app: aiohttp.web.Application) -> Any:
         try:
@@ -27,7 +33,7 @@ class Converter:
         except Exception as e:
             raise ConvertError(self.error_template.format(value, self, e))
 
-        for check in self.checks:
+        for check in self._checks:
             if not await check.check(result, app):
                 raise CheckError(check.error_template.format(result, check))
 
@@ -35,6 +41,16 @@ class Converter:
 
     async def _convert(self, value: str, app: aiohttp.web.Application) -> Any:
         raise NotImplementedError
+
+    @property
+    def has_default(self) -> bool:
+        return self._default is not DEFAULT
+
+    def get_default(self) -> Any:
+        if not self.has_default:
+            raise KeyError
+
+        return self._default
 
     def __str__(self) -> str:
         return self.__class__.__name__.lower()
