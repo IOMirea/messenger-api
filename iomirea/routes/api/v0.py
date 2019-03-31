@@ -17,6 +17,7 @@ routes = web.RouteTableDef()
 
 
 @routes.get(endpoints_public.MESSAGE)
+@helpers.parse_token
 @access.channel
 async def get_message(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
@@ -37,6 +38,7 @@ async def get_message(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.MESSAGES)
+@helpers.parse_token
 @access.channel
 @helpers.query_params(
     {
@@ -69,6 +71,7 @@ async def get_messages(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.PINNED_MESSAGES)
+@helpers.parse_token
 @access.channel
 async def get_pins(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
@@ -86,6 +89,7 @@ async def get_pins(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.CHANNEL)
+@helpers.parse_token
 @access.channel
 async def get_channel(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
@@ -101,6 +105,7 @@ async def get_channel(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.USER)
+@helpers.parse_token
 async def get_user(req: web.Request) -> web.Response:
     user_id = req["match_info"]["user_id"]
 
@@ -115,6 +120,7 @@ async def get_user(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.USER_CHANNELS)
+@helpers.parse_token
 @access.user
 async def get_user_channels(req: web.Request) -> web.Response:
     user_id = req["match_info"]["user_id"]
@@ -132,6 +138,7 @@ async def get_user_channels(req: web.Request) -> web.Response:
 
 
 @routes.get(endpoints_public.FILE)
+@helpers.parse_token
 async def get_file(req: web.Request) -> web.Response:
     file_id = req["match_info"]["file_id"]
 
@@ -153,7 +160,7 @@ async def get_file(req: web.Request) -> web.Response:
         "body": converters.String(checks=[checks.LengthBetween(0, 4096)]),
         "device_info": converters.String(
             checks=[checks.LengthBetween(0, 4096)]
-        ),
+        ),  # TODO: "automatic" parameter
     },
     from_body=True,
 )

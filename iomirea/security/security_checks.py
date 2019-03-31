@@ -1,16 +1,16 @@
 import bcrypt
 
-from utils import auth
+from utils import access_token
 
 
-def check_access_token(token: str, client_secret: str) -> bool:
+def check_access_token(token: str, client_secret: bytes) -> bool:
     # TODO: token structure check
     start, middle, hmac_component = token.split(".")
 
-    user_id = auth.decode_token_user_id(start)
-    create_offset = auth.decode_token_creation_offset(middle)
+    user_id = access_token.decode_token_user_id(start)
+    create_offset = access_token.decode_token_creation_offset(middle)
 
-    return hmac_component == auth.encode_token_hmac_component(
+    return hmac_component == access_token.encode_token_hmac_component(
         client_secret, user_id, create_offset
     )
 

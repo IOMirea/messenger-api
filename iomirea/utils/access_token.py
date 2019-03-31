@@ -3,7 +3,6 @@ import time
 import math
 import codecs
 import base64
-import hashlib
 
 from typing import List
 
@@ -35,12 +34,12 @@ def decode_token_creation_offset(token_middle: str) -> int:
 
 
 def encode_token_hmac_component(
-    secret: str, user_id: int, create_offset: int
+    secret: bytes, user_id: int, create_offset: int
 ) -> str:
     to_encrypt = ".".join([str(user_id), str(create_offset)])
 
     hmac_component = hmac.new(
-        secret.encode(), msg=to_encrypt.encode(), digestmod=hashlib.sha1
+        secret, msg=to_encrypt.encode(), digestmod="sha1"
     ).digest()
 
     # removing '=' from the end of the line
@@ -49,7 +48,7 @@ def encode_token_hmac_component(
 
 async def create_access_token(
     user_id: int,
-    secret: str,
+    secret: bytes,
     app_id: int,
     scope: List[str],
     conn: asyncpg.Connection,
