@@ -52,7 +52,7 @@ class Converter:
 
     def error(self, value: Any, e: Exception) -> str:
         return self.ERROR_TEMPLATE.format(
-            {"value": value, "type": self, "error": e}
+            **{"value": value, "type": self, "error": e}
         )
 
     def __str__(self) -> str:

@@ -12,7 +12,7 @@ class Check:
         raise NotImplementedError
 
     def error(self, value: Any) -> str:
-        return self.ERROR_TEMPLATE.format({"check": self, "value": value})
+        return self.ERROR_TEMPLATE.format(**{"check": self, "value": value})
 
     def __str__(self) -> str:
         return self.__class__.__name__.lower()
