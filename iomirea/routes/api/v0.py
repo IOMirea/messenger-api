@@ -70,6 +70,27 @@ async def get_messages(req: web.Request) -> web.Response:
     )
 
 
+@routes.post(endpoints_public.MESSAGES)
+@helpers.parse_token
+@access.channel
+@helpers.query_params(
+    {"content": converters.String(checks=[checks.LengthBetween(1, 2048)])},
+    from_body=True,
+)
+async def send_message(req: web.Request) -> web.Response:
+    snowflake = req.config_dict["sf_gen"].gen_id()
+
+    record = await req.config_dict["pg_conn"].fetchrow(
+        "INSERT INTO messages (id, author_id, channel_id, content) VALUES ($1, $2, $3, $4) RETURNING *",
+        snowflake,
+        req["access_token"].user_id,
+        req["match_info"]["channel_id"],
+        req["query"]["content"],
+    )
+
+    return web.json_response(Message.from_record(record).json)
+
+
 @routes.get(endpoints_public.PINNED_MESSAGES)
 @helpers.parse_token
 @access.channel
