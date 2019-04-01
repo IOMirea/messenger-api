@@ -106,14 +106,7 @@ def parse_token(endpoint: HandlerType) -> HandlerType:
             )
 
         if not await token.verify(password):
-            raise web.HTTPUnauthorized(
-                reason="Badd access token passed (hmac signature does not match)"
-            )
-
-        if not await token.exists():
-            raise web.HTTPUnauthorized(
-                reason="Impropper access token passed (token does not exist)"
-            )
+            raise web.HTTPUnauthorized(reason="Bad access token passed")
 
         req["access_token"] = token
 
