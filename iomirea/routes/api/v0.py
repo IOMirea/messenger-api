@@ -74,7 +74,11 @@ async def get_messages(req: web.Request) -> web.Response:
 @helpers.parse_token
 @access.channel
 @helpers.query_params(
-    {"content": converters.String(checks=[checks.LengthBetween(1, 2048)])},
+    {
+        "content": converters.String(
+            strip=True, checks=[checks.LengthBetween(1, 2048)]
+        )
+    },
     from_body=True,
 )
 async def send_message(req: web.Request) -> web.Response:

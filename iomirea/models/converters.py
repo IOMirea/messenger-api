@@ -91,8 +91,13 @@ class Number(Converter):
 
 
 class String(Converter):
+    def __init__(self, strip: bool = False, **kwargs: Any):
+        super().__init__(**kwargs)
+
+        self.strip = strip
+
     async def _convert(self, value: str, app: aiohttp.web.Application) -> str:
-        return value
+        return value.strip() if self.strip else value
 
 
 class Boolean(Converter):
