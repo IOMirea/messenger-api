@@ -146,7 +146,7 @@ async def perform_db_migration(
 
 async def main() -> None:
     with open(CONFIG_PATH, "r") as f:
-        config = yaml.load(f)
+        config = yaml.load(f, Loader=yaml.SafeLoader)
 
     init_logger(config)
     new_config = await perform_config_migration(config)

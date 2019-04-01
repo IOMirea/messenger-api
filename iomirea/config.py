@@ -11,7 +11,7 @@ class Config:
 
         try:
             with open(self.name, "r") as f:
-                self._config = yaml.load(f)
+                self._config = yaml.load(f, Loader=yaml.SafeLoader)
         except FileNotFoundError:
             self._config = {}
 
