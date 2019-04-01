@@ -8,11 +8,8 @@ from models.access_token import Token
 from errors import ConvertError, CheckError
 
 
-HandlerType = Callable[[web.Request], Awaitable[web.Response]]
-DecoratedHandlerType = Callable[
-    [Callable[[web.Request], Awaitable[web.Response]]],
-    Callable[[web.Request], Awaitable[web.Response]],
-]
+_Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
+_Decorator = Callable[[_Handler], _Handler]
 
 
 def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
@@ -29,9 +26,9 @@ def query_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
     from_body: bool = False,
-) -> DecoratedHandlerType:
-    def deco(endpoint: HandlerType) -> HandlerType:
-        async def wrapper(req: web.Request) -> web.Response:
+) -> _Decorator:
+    def deco(endpoint: _Handler) -> _Handler:
+        async def wrapper(req: web.Request) -> web.StreamResponse:
             # TODO: check encoding
 
             if from_body:
@@ -84,8 +81,8 @@ def query_params(
     return deco
 
 
-def parse_token(endpoint: HandlerType) -> HandlerType:
-    async def wrapper(req: web.Request) -> web.Response:
+def parse_token(endpoint: _Handler) -> _Handler:
+    async def wrapper(req: web.Request) -> web.StreamResponse:
         try:
             token_header = req.headers["Authorization"]
         except KeyError:

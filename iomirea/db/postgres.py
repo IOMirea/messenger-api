@@ -34,7 +34,7 @@ class DBObject:
         self._data = {pk: data[dk] for dk, pk in self._keys.items()}
 
     @classmethod
-    def from_record(cls, record: Dict[str, str]) -> "DBObject":
+    def from_record(cls, record: asyncpg.Record) -> "DBObject":
         return cls(dict(record))
 
     @classmethod

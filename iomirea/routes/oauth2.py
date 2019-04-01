@@ -29,7 +29,6 @@ routes = web.RouteTableDef()
 
 
 @routes.get("/authorize")
-@aiohttp_jinja2.template("authorize.html")
 @helpers.query_params(
     {
         "response_type": converters.String(checks=[checks.Equals("code")]),
@@ -40,6 +39,7 @@ routes = web.RouteTableDef()
     },
     unique=True,
 )
+@aiohttp_jinja2.template("authorize.html")
 async def authorize(
     req: web.Request
 ) -> Union[Dict[str, Any], web.StreamResponse]:

@@ -5,11 +5,11 @@ from aiohttp import web
 from log import server_log
 
 
-HandlerType = Callable[[web.Request], Awaitable[web.Response]]
+_Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
 
 
-def channel(endpoint: HandlerType) -> HandlerType:
-    async def wrapper(req: web.Request) -> web.Response:
+def channel(endpoint: _Handler) -> _Handler:
+    async def wrapper(req: web.Request) -> web.StreamResponse:
         try:
             channel_id = req["match_info"]["channel_id"]
         except KeyError:
@@ -42,8 +42,8 @@ def channel(endpoint: HandlerType) -> HandlerType:
     return wrapper
 
 
-def user(endpoint: HandlerType) -> HandlerType:
-    async def wrapper(req: web.Request) -> web.Response:
+def user(endpoint: _Handler) -> _Handler:
+    async def wrapper(req: web.Request) -> web.StreamResponse:
         try:
             user_id = req["match_info"]["user_id"]
         except KeyError:
@@ -68,16 +68,16 @@ def user(endpoint: HandlerType) -> HandlerType:
     return wrapper
 
 
-def create_reports(endpoint: HandlerType) -> HandlerType:
-    async def wrapper(req: web.Request) -> web.Response:
+def create_reports(endpoint: _Handler) -> _Handler:
+    async def wrapper(req: web.Request) -> web.StreamResponse:
         # TODO: actual check
         return await endpoint(req)
 
     return wrapper
 
 
-def access_reports(endpoint: HandlerType) -> HandlerType:
-    async def wrapper(req: web.Request) -> web.Response:
+def access_reports(endpoint: _Handler) -> _Handler:
+    async def wrapper(req: web.Request) -> web.StreamResponse:
         # TODO: actual check
         return await endpoint(req)
 
