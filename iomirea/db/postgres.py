@@ -1,4 +1,4 @@
-from typing import Dict, TypeVar, Type
+from typing import Dict
 
 import asyncpg
 import aiohttp
@@ -20,9 +20,6 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
     await app["pg_conn"].close()
 
 
-T = TypeVar("T", bound="DBObject")
-
-
 class DBObject:
     """
     Basic database object container, adds id to keys
@@ -37,11 +34,11 @@ class DBObject:
         self._data = {pk: data[dk] for dk, pk in self._keys.items()}
 
     @classmethod
-    def from_record(cls: Type[T], record: Dict[str, str]) -> T:
+    def from_record(cls, record: Dict[str, str]) -> "DBObject":
         return cls(dict(record))
 
     @classmethod
-    def from_json(cls: Type[T], data: Dict[str, str]) -> T:
+    def from_json(cls, data: Dict[str, str]) -> "DBObject":
         return cls(data)
 
     @property

@@ -1,13 +1,11 @@
-import binascii
-
 from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
 
 from aiohttp import web
 
 from log import server_log
 from models import converters
+from models.access_token import Token
 from errors import ConvertError, CheckError
-from utils import access_token
 
 
 HandlerType = Callable[[web.Request], Awaitable[web.Response]]
@@ -89,53 +87,35 @@ def query_params(
 def parse_token(endpoint: HandlerType) -> HandlerType:
     async def wrapper(req: web.Request) -> web.Response:
         try:
-            token = req.headers["Authorization"]
+            token_header = req.headers["Authorization"]
         except KeyError:
             raise web.HTTPUnauthorized(reason="No access token passed")
 
         try:
-            token_start, token_middle, token_end = token.split(
-                "."
-            )  # ValueError
-            user_id = access_token.decode_token_user_id(
-                token_start
-            )  # ValueError, binascii.Error
-            create_offset = access_token.decode_token_creation_offset(
-                token_middle
-            )  # ValueError, binascii.Error
-        except (ValueError, binascii.Error) as e:
-            server_log.info(f"Error parsing token {token}: {e}")
-
-            raise web.HTTPUnauthorized(reason="Impropper access token passed")
+            token = Token.from_string(token_header, req.config_dict["pg_conn"])
+        except ValueError:
+            raise web.HTTPUnauthorized(reason="Bad access token passed")
 
         password = await req.config_dict["pg_conn"].fetchval(
-            "SELECT password FROM users WHERE id = $1", user_id
+            "SELECT password FROM users WHERE id = $1", token.user_id
         )
 
         if password is None:
-            raise web.HTTPUnauthorized(reason="Impropper access token passed")
-
-        hmac_component = access_token.encode_token_hmac_component(
-            password, user_id, create_offset
-        )
-        if hmac_component != token_end:
-            server_log.info(
-                f"Token hmac signature did not match: {user_id}-{token}"
+            raise web.HTTPUnauthorized(
+                reason="Bad access token passed (no such user)"
             )
-            raise web.HTTPUnauthorized(reason="Impropper access token passed")
 
-        scope = await req.config_dict["pg_conn"].fetchval(
-            "SELECT scope FROM tokens WHERE user_id = $1 AND hmac_component = $2",
-            user_id,
-            hmac_component,
-        )
+        if not await token.verify(password):
+            raise web.HTTPUnauthorized(
+                reason="Badd access token passed (hmac signature does not match)"
+            )
 
-        if scope is None:
-            server_log.info(f"Token not found: {user_id}-{hmac_component}")
-            raise web.HTTPUnauthorized(reason="Impropper access token passed")
+        if not await token.exists():
+            raise web.HTTPUnauthorized(
+                reason="Impropper access token passed (token does not exist)"
+            )
 
-        req["user_id"] = user_id
-        req["scope"] = scope
+        req["access_token"] = token
 
         return await endpoint(req)
 

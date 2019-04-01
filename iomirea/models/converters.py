@@ -51,8 +51,8 @@ class Converter:
         return self._default
 
     def error(self, value: Any, e: Exception) -> str:
-        return self.ERROR_TEMPLATE.format(
-            **{"value": value, "type": self, "error": e}
+        return self.ERROR_TEMPLATE.format_map(
+            {"value": value, "type": self, "error": e}
         )
 
     def __str__(self) -> str:

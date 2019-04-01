@@ -20,10 +20,10 @@ def channel(endpoint: HandlerType) -> HandlerType:
             raise web.HTTPInternalServerError()
 
         try:
-            user_id = req["user_id"]
+            user_id = req["access_token"].user_id
         except KeyError:
             server_log.critical(
-                "User id not in request fields. Did you forget to place parse_token wrapper above check?"
+                "Access token not in request fields. Did you forget to place parse_token wrapper above check?"
             )
 
             raise web.HTTPInternalServerError()
@@ -52,10 +52,10 @@ def user(endpoint: HandlerType) -> HandlerType:
             )
 
         try:
-            request_user_id = req["user_id"]
+            request_user_id = req["access_token"].user_id
         except KeyError:
             server_log.critical(
-                "access.user: User id not in request fields. Did you forget to place parse_token wrapper above check?"
+                "Access token not in request fields. Did you forget to place parse_token wrapper above check?"
             )
 
             raise web.HTTPInternalServerError()
