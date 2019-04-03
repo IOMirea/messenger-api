@@ -1,3 +1,22 @@
+"""
+IOMirea-server - A server for IOMirea messenger
+Copyright (C) 2019  Eugene Ershov
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+
 import math
 
 from typing import Any, List
@@ -8,7 +27,15 @@ from models import checks
 from errors import ConvertError, CheckError
 
 
-DEFAULT = object()
+class _Default:
+    def __repr__(self) -> str:
+        return "<Empty default>"
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+DEFAULT = _Default()
 
 
 class Converter:
@@ -59,7 +86,7 @@ class Converter:
         return self.__class__.__name__.lower()
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} checks={self._checks} default={self._default}"
+        return f"<{self.__class__.__name__} checks={self._checks} default={self._default}>"
 
 
 class Integer(Converter):

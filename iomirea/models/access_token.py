@@ -1,3 +1,22 @@
+"""
+IOMirea-server - A server for IOMirea messenger
+Copyright (C) 2019  Eugene Ershov
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+
 import hmac
 import time
 import math
@@ -69,7 +88,7 @@ class Token:
         parts.append(cls.encode_create_offset(create_offset))
         parts.append(cls.encode_hmac_component(secret, user_id, create_offset))
 
-        token = cls(user_id, create_offset, parts, conn)
+        token = cls(user_id, create_offset, parts, conn, scope, app_id)
 
         if write:
             await token._write_db()
@@ -124,6 +143,13 @@ class Token:
 
         # ignoring type because checking self.exists() output verifies app_id
         return self._app_id  # type: ignore
+
+    async def revoke(self) -> None:
+        await self._conn.fetchval(
+            "DELETE FROM Tokens WHERE user_id = $1 AND hmac_component = $2",
+            self.user_id,
+            self._parts[2],
+        )
 
     @staticmethod
     def encode_user_id(user_id: int) -> str:
