@@ -1,4 +1,5 @@
 import hmac
+import secrets
 
 from typing import Any, Union, Dict, List
 
@@ -31,7 +32,7 @@ routes = web.RouteTableDef()
 @routes.get("/authorize")
 @helpers.query_params(
     {
-        "response_type": converters.String(checks=[checks.Equals("code")]),
+        "response_type": converters.String(),
         "client_id": converters.ID(),
         "scope": Scope(default=["user"]),
         "redirect_uri": converters.String(),
@@ -43,27 +44,34 @@ routes = web.RouteTableDef()
 async def authorize(
     req: web.Request
 ) -> Union[Dict[str, Any], web.StreamResponse]:
+
     query = req["query"]
-    # TODO: check scope items
-    # TODO: check redirect_uri
 
-    record = await req.config_dict["pg_conn"].fetchval(
-        "SELECT (name, redirect_uri) FROM applications WHERE id = $1",
-        query["client_id"],
-    )
+    if query["response_type"] == "code":
+        # TODO: check scope items
+        # TODO: check redirect_uri
 
-    if record is None:
-        raise web.HTTPBadRequest(reason="Application not found in database")
+        record = await req.config_dict["pg_conn"].fetchval(
+            "SELECT (name, redirect_uri) FROM applications WHERE id = $1",
+            query["client_id"],
+        )
 
-    if record[1] != query["redirect_uri"]:
-        raise web.HTTPBadRequest(reason="Bad redirect_uri passed")
+        if record is None:
+            raise web.HTTPBadRequest(reason="Application not found in database")
 
-    return {
-        "redirect_uri": record[1],
-        "app_name": record[0],
-        "scope": " ".join(query["scope"]),
-        "state": query["state"],
-    }
+        if record[1] != query["redirect_uri"]:
+            raise web.HTTPBadRequest(reason="Bad redirect_uri passed")
+
+        return {
+            "redirect_uri": record[1],
+            "app_name": record[0],
+            "scope": " ".join(query["scope"]),
+            "state": query["state"],
+        }
+    else:
+        raise web.HTTPBadRequest(
+            reason="Currently only response_type of type code supported"
+        )
 
 
 @routes.post("/authorize")
@@ -104,15 +112,47 @@ async def post_authorize(req: web.Request) -> web.Response:
             query["redirect_uri"],
         ]
     )
+    key = secrets.token_bytes(20)
     code = hmac.new(
-        record[1], msg=message.encode(), digestmod="sha1"
+        key, msg=message.encode(), digestmod="sha1"
     ).hexdigest()
+
+    await req.config_dict["rd_conn"].execute("SETEX", f"auth_code_{query['client_id']}_{record[0]}_{code}", 10 * 60, key)
 
     return web.Response(text=code)
 
 
 @routes.post("/token")
 async def token(req: web.Request) -> web.Response:
+    # TODO: get values
+    user_id = 0
+    client_id = 0
+    code = ""
+    scope = []
+    redirect_uri = ""
+    # TODO: get values
+
+    code_key = f"auth_code_{client_id}_{user_id}_{code}"
+
+    key = await req.config_dict["rd_conn"].execute("GET", code_key)
+    if key is None:
+        raise web.HTTPUnauthorized(reason="Wrong or expired key passed")
+
+    await req.config_dict["rd_conn"].execute("DEL", code_key)
+
+    message = ".".join(
+        [
+            str(client_id),
+            ".".join(scope),
+            redirect_uri,
+        ]
+    )
+    calculated_code = hmac.new(
+        key, msg=message.encode(), digestmod="sha1"
+    ).hexdigest()
+
+    hmac.compare_digest(calculated_code, code)
+
     return web.json_response({"message": "token: WIP"})
 
 
