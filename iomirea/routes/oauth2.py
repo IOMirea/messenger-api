@@ -166,7 +166,7 @@ async def token(req: web.Request) -> web.Response:
             reason="Wrong or expired authorization code passed"
         )
 
-    # await req.config_dict["rd_conn"].execute("DEL", record_key)
+    await req.config_dict["rd_conn"].execute("DEL", record_key)
 
     user_id, _, encoded_key = record.decode().partition(":")
 
