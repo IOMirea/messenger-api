@@ -1,9 +1,9 @@
-CREATE TABLE IF NOT EXISTS versions (
+CREATE TABLE versions (
 	version SMALLINT NOT NULL,
 	name TEXT PRIMARY KEY NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE messages (
 	id BIGINT PRIMARY KEY NOT NULL,
 	channel_id BIGINT NOT NULL,
 	author_id BIGINT NOT NULL,
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS messages (
 	deleted BOOL NOT NULL DEFAULT false
 );
 
-CREATE INDEX IF NOT EXISTS messages_channel_index ON messages(channel_id);
+CREATE INDEX messages_channel_index ON messages(channel_id);
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
 	id BIGINT PRIMARY KEY NOT NULL,
 	name VARCHAR(128) NOT NULL,
 	channel_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
@@ -26,14 +26,14 @@ CREATE TABLE IF NOT EXISTS users (
 	password BYTEA NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS channels (
+CREATE TABLE channels (
 	id BIGINT PRIMARY KEY NOT NULL,
 	name VARCHAR(128),
 	user_ids BIGINT[] NOT NULL,
 	pinned_ids BIGINT[] NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS files (
+CREATE TABLE files (
 	id BIGINT PRIMARY KEY NOT NULL,
 	message_id BIGINT NOT NULL,
 	channel_id BIGINT NOT NULL,
@@ -42,14 +42,14 @@ CREATE TABLE IF NOT EXISTS files (
 	hash UUID NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS bugreports (
+CREATE TABLE bugreports (
 	id SERIAL PRIMARY KEY NOT NULL,
 	user_id BIGINT,
 	report_body TEXT NOT NULL,
 	device_info TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS tokens (
+CREATE TABLE tokens (
 	hmac_component TEXT NOT NULL,
 	user_id BIGINT NOT NULL,
 	app_id BIGINT NOT NULL,
@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS tokens (
 	scope TEXT[] NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS applications (
+CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
-	redirect_uri TEXT PRIMARY KEY NOT NULL,
+	redirect_uri TEXT NOT NULL,
 	name VARCHAR(256) NOT NULL
 );

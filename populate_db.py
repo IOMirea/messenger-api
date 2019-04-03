@@ -1,3 +1,22 @@
+"""
+IOMirea-server - A server for IOMirea messenger
+Copyright (C) 2019  Eugene Ershov
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+
 import asyncio
 import random
 import time
@@ -8,6 +27,10 @@ from typing import Dict, Any, Callable, List
 import asyncpg
 import bcrypt
 import yaml
+
+
+# script was written for this version
+CURRENT_DATABASE_VERSION = 7
 
 
 # taken from https://www.ssa.gov/oact/babynames/decades/century.html
@@ -26,7 +49,7 @@ def profiler(task_name: str) -> Callable[[Any], Any]:
             print(f">{task_name}")
             start = time.time()
             result = await fn(*args, **kwargs)  # type: ignore
-            print(f"<Finished in {round((time.time() - start)*1000, 3)}s")
+            print(f"<Finished in {round((time.time() - start)*1000, 3)}ms")
             return result
 
         return wrapper
@@ -36,7 +59,7 @@ def profiler(task_name: str) -> Callable[[Any], Any]:
 
 def get_db_credentials() -> Dict[str, Any]:
     with open("config.yaml") as config:
-        data = yaml.load(config)
+        data = yaml.load(config, Loader=yaml.SafeLoader)
 
         return data["postgresql"]
 
@@ -60,18 +83,18 @@ class User(RandObject):
             self.channel_ids = list(range(10))
             self.bot = False
             self.email = 'test-bob@gmail.com'
-            self.password = bcrypt.hashpw(self.name.encode(), bcrypt.gensalt())
-            return
 
-        self.name = random.choice(sample_names)
+        else:
+            self.name = random.choice(sample_names)
 
-        for i in range(random.randrange(10)):
-            channel_id = random.randrange(100)
-            if channel_id not in self.channel_ids:
-                self.channel_ids.append(channel_id)
+            for i in range(random.randrange(10)):
+                channel_id = random.randrange(100)
+                if channel_id not in self.channel_ids:
+                    self.channel_ids.append(channel_id)
 
-        self.bot = random.random() > 0.5
-        self.email = 'email@gmail.com'
+            self.bot = random.random() > 0.5
+            self.email = f'{self.name}{self.id}@gmail.com'
+
         self.password = bcrypt.hashpw(self.name.encode(), bcrypt.gensalt())
 
 
@@ -146,7 +169,7 @@ async def populate_messages(conn: asyncpg.Connection) -> None:
         "INSERT INTO messages (id, channel_id, author_id, content, encrypted, pinned, edited, deleted) VALUES($1, $2, $3, $4, $5, $6, $7, $8)"
     )
 
-    for i in range(100):
+    for i in range(200):
         message = Message(i)
         messages[i] = message
         await query.fetch(
@@ -202,11 +225,36 @@ async def is_db_filled(conn: asyncpg.Connection) -> bool:
     )
 
 
+async def check_db_version(conn: asyncpg.Connection) -> bool:
+    db_version = await conn.fetchval(
+        "SELECT version FROM versions WHERE name = 'database'"
+    )
+
+    if db_version != CURRENT_DATABASE_VERSION:
+        answer = ''
+        while True:
+            if answer.lower() == 'y':
+                return True
+            elif answer.lower() == 'n':
+                return False
+
+            answer = input(
+                f"Database version is {db_version} while script version is {CURRENT_DATABASE_VERSION}.\n"
+                f"This might damage database. Do you want to continue? (y/n) "
+            )
+
+    return True
+
+
 async def main() -> None:
     conn = await asyncpg.connect(**get_db_credentials())
+    if not await check_db_version(conn):
+        return
+
     if await is_db_filled(conn):
         print(
-            "Database is already filled. You should clear tables before running this script"
+            "Database is already filled. You should clear tables before running this script\n"
+            "Drop command: DELETE FROM users; DELETE FROM messages; DELETE FROM channels; DELETE FROM files;"
         )
         return
 
