@@ -59,6 +59,7 @@ CREATE TABLE tokens (
 
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
+	secret TEXT NOT NULL,
 	redirect_uri TEXT NOT NULL,
 	name VARCHAR(256) NOT NULL
 );

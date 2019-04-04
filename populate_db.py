@@ -30,7 +30,7 @@ import yaml
 
 
 # script was written for this version
-CURRENT_DATABASE_VERSION = 7
+CURRENT_DATABASE_VERSION = 8
 
 
 # taken from https://www.ssa.gov/oact/babynames/decades/century.html
