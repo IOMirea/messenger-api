@@ -50,7 +50,7 @@ class Scope(converters.Converter):
 
 
 class RedirectURI(converters.Converter):
-    URI_REGEX = re.compile(r"[a-z]+://\w+.*", re.IGNORECASE | re.UNICODE)
+    URI_REGEX = re.compile(r"[a-z]+://\w+[^#]*", re.IGNORECASE | re.UNICODE)
 
     def __init__(self, verify: bool = True, **kwargs: Any):
         super().__init__(**kwargs)
