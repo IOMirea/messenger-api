@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
+import re
 import hmac
 import base64
 import secrets
@@ -30,6 +31,7 @@ from aiohttp import web
 from models import converters, checks
 from models.access_token import Token
 from utils import helpers
+from errors import ConvertError
 from constants import EXISTING_SCOPES
 from security.security_checks import check_user_password
 
@@ -47,10 +49,26 @@ class Scope(converters.Converter):
         return scopes
 
 
+class RedirectURI(converters.Converter):
+    URI_REGEX = re.compile(r"[a-z]+://\w+.*", re.IGNORECASE | re.UNICODE)
+
+    def __init__(self, verify: bool = True, **kwargs: Any):
+        super().__init__(**kwargs)
+
+        self.verify = verify
+
+    async def _convert(self, value: str, app: web.Application) -> str:
+        if self.verify:
+            if self.URI_REGEX.fullmatch(value) is None:
+                raise ConvertError("Bad format", overwrite_response=True)
+
+        return value
+
+
 authorize_query_params = {
     "client_id": converters.ID(),
     "scope": Scope(default=["user"]),
-    "redirect_uri": converters.String(),
+    "redirect_uri": RedirectURI(),
     "state": converters.String(default=""),
     "response_type": converters.String(
         checks=[checks.OneOf(["code", "token"])]
@@ -147,7 +165,7 @@ async def post_authorize(req: web.Request) -> web.Response:
             checks=[checks.OneOf(["authorization_code", "refresh_token"])]
         ),
         "code": converters.String(),
-        "redirect_uri": converters.String(),
+        "redirect_uri": RedirectURI(verify=False),
         "client_id": converters.ID(),
         "client_secret": converters.String(),
     },
@@ -188,7 +206,7 @@ async def token(req: web.Request) -> web.Response:
         )
 
         if user_password is None:
-            raise web.HTTPBadRequest("User does not exist")
+            raise web.HTTPBadRequest(reason="User does not exist")
 
         token = await Token.from_data(
             user_id,

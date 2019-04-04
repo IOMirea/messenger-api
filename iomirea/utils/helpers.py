@@ -1,3 +1,22 @@
+"""
+IOMirea-server - A server for IOMirea messenger
+Copyright (C) 2019  Eugene Ershov
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+
 from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
 
 from aiohttp import web
@@ -66,9 +85,12 @@ def query_params(
                 except ConvertError as e:
                     server_log.debug(f"Parameter {name}: {e}")
 
-                    return web.json_response(
-                        {name: f"Should be of type {converter}"}, status=400
-                    )
+                    if e.overwrite_response:
+                        error = str(e)
+                    else:
+                        error = f"Should be of type {converter}"
+
+                    return web.json_response({name: error}, status=400)
                 except CheckError as e:
                     server_log.debug(f"Parameter {name}: check failed: {e}")
 
