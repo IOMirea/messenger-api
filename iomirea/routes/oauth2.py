@@ -21,7 +21,6 @@ import hmac
 import base64
 import secrets
 
-from copy import copy
 from typing import Any, Union, Dict, List
 
 import aiohttp_jinja2
@@ -53,16 +52,10 @@ authorize_query_params = {
     "scope": Scope(default=["user"]),
     "redirect_uri": converters.String(),
     "state": converters.String(default=""),
+    "response_type": converters.String(
+        checks=[checks.OneOf(["code", "token"])]
+    ),
 }
-
-token_query_params = copy(authorize_query_params)
-
-authorize_query_params["response_type"] = converters.String(
-    checks=[checks.OneOf(["code", "token"])]
-)
-token_query_params["response_type"] = converters.String(
-    checks=[checks.OneOf(["code", "refresh_token"])]
-)
 
 routes = web.RouteTableDef()
 
@@ -131,86 +124,98 @@ async def post_authorize(req: web.Request) -> web.Response:
     if not await check_user_password(query["password"], record["password"]):
         raise web.HTTPUnauthorized()
 
-    message = ".".join(
-        [
-            str(query["client_id"]),
-            ".".join(query["scope"]),
-            query["redirect_uri"],
-        ]
-    )
+    message = ".".join([str(query["client_id"]), query["redirect_uri"]])
     key = secrets.token_bytes(20)
     code = hmac.new(key, msg=message.encode(), digestmod="sha1").hexdigest()
 
     encoded_key = base64.b64encode(key).decode()
 
     await req.config_dict["rd_conn"].execute(
-        "SETEX", f"auth_code:{code}", 10 * 60, f"{record['id']}:{encoded_key}"
+        "SETEX",
+        f"auth_code:{code}",
+        10 * 60,
+        f"{record['id']}:{encoded_key}:{' '.join(query['scope'])}",
     )
 
     return web.Response(text=code)
 
 
 @routes.post("/token")
-@helpers.query_params(token_query_params, unique=True)
 @helpers.query_params(
-    {"code": converters.String()}, unique=True, from_body=True
+    {
+        "grant_type": converters.String(
+            checks=[checks.OneOf(["authorization_code", "refresh_token"])]
+        ),
+        "code": converters.String(),
+        "redirect_uri": converters.String(),
+        "client_id": converters.ID(),
+        "client_secret": converters.String(),
+    },
+    unique=True,
+    from_body=True,
 )
 async def token(req: web.Request) -> web.Response:
     query = req["query"]
 
-    record_key = f"auth_code:{query['code']}"
+    if query["grant_type"] == "authorization_code":
+        # TODO: check client_secret
 
-    record = await req.config_dict["rd_conn"].execute("GET", record_key)
-    if record is None:
-        raise web.HTTPUnauthorized(
-            reason="Wrong or expired authorization code passed"
+        record_key = f"auth_code:{query['code']}"
+
+        record = await req.config_dict["rd_conn"].execute("GET", record_key)
+        if record is None:
+            raise web.HTTPUnauthorized(
+                reason="Wrong or expired authorization code passed"
+            )
+
+        await req.config_dict["rd_conn"].execute("DEL", record_key)
+
+        user_id, encoded_key, scope = record.decode().split(":")
+
+        user_id = int(user_id)
+        key = base64.b64decode(encoded_key)
+
+        message = ".".join([str(query["client_id"]), query["redirect_uri"]])
+        calculated_code = hmac.new(
+            key, msg=message.encode(), digestmod="sha1"
+        ).hexdigest()
+
+        if not hmac.compare_digest(calculated_code, query["code"]):
+            raise web.HTTPUnauthorized(reason="Bad authorization code passed")
+
+        user_password = await req.config_dict["pg_conn"].fetchval(
+            "SELECT password FROM users WHERE id = $1", user_id
         )
 
-    await req.config_dict["rd_conn"].execute("DEL", record_key)
+        if user_password is None:
+            raise web.HTTPBadRequest("User does not exist")
 
-    user_id, _, encoded_key = record.decode().partition(":")
+        token = await Token.from_data(
+            user_id,
+            user_password,
+            query["client_id"],
+            scope.split(" "),
+            req.config_dict["pg_conn"],
+        )
 
-    user_id = int(user_id)
-    key = base64.b64decode(encoded_key)
+        # TODO: refresh_token
+        # TODO: expires_in
+        return web.json_response(
+            {
+                "access_token": str(token),
+                "token_type": "Bearer",
+                "scope": scope,
+            }
+        )
+    elif query["grant_type"] == "refresh_token":
+        raise web.HTTPNotImplemented(
+            reason="grant_type=refresh_token is not supported yet"
+        )
 
-    message = ".".join(
-        [
-            str(query["client_id"]),
-            ".".join(query["scope"]),
-            query["redirect_uri"],
-        ]
-    )
-    calculated_code = hmac.new(
-        key, msg=message.encode(), digestmod="sha1"
-    ).hexdigest()
-
-    if not hmac.compare_digest(calculated_code, query["code"]):
-        raise web.HTTPUnauthorized(reason="Bad authorization code passed")
-
-    user_password = await req.config_dict["pg_conn"].fetchval(
-        "SELECT password FROM users WHERE id = $1", user_id
-    )
-
-    if user_password is None:
-        raise web.HTTPBadRequest("User does not exist")
-
-    token = await Token.from_data(
-        user_id,
-        user_password,
-        query["client_id"],
-        query["scope"],
-        req.config_dict["pg_conn"],
-    )
-
-    # TODO: refresh_token
-    # TODO: expires_in
-    return web.json_response(
-        {
-            "access_token": str(token),
-            "token_type": "Bearer",
-            "scope": " ".join(await token.get_scope()),
-        }
-    )
+    else:
+        raise RuntimeError(
+            f"Unknown grant_type received: {query['grant_type']}"
+        )
 
 
 @routes.post("/token/revoke")
