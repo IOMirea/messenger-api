@@ -17,7 +17,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from typing import Iterable, Optional, Dict, Any, Set, Callable, Awaitable
+from typing import (
+    Iterable,
+    Optional,
+    Dict,
+    Any,
+    Set,
+    Callable,
+    Awaitable,
+    NoReturn,
+)
 
 from aiohttp import web
 
@@ -45,6 +54,7 @@ def query_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
     from_body: bool = False,
+    json_response: bool = True,
 ) -> _Decorator:
     def deco(endpoint: _Handler) -> _Handler:
         async def wrapper(req: web.Request) -> web.StreamResponse:
@@ -61,8 +71,13 @@ def query_params(
                 repeating = get_repeating(query.keys())
 
                 if repeating is not None:
-                    return web.json_response(
-                        {repeating: f"Repeats in {query_name}"}, status=400
+                    if json_response:
+                        return web.json_response(
+                            {repeating: f"Repeats in {query_name}"}, status=400
+                        )
+
+                    raise web.HTTPBadRequest(
+                        reason=f"{repeating}: Repeats in {query_name}"
                     )
 
             req["query"] = req.get("query", {})
@@ -74,8 +89,14 @@ def query_params(
                         req["query"][name] = converter.get_default()
                         continue
                     except KeyError:  # no default value
-                        return web.json_response(
-                            {name: f"Missing from {query_name}"}, status=400
+                        if json_response:
+                            return web.json_response(
+                                {name: f"Missing from {query_name}"},
+                                status=400,
+                            )
+
+                        raise web.HTTPBadRequest(
+                            reason=f"{name}: Missing from {query_name}"
                         )
 
                 try:
@@ -90,11 +111,17 @@ def query_params(
                     else:
                         error = f"Should be of type {converter}"
 
-                    return web.json_response({name: error}, status=400)
+                    if json_response:
+                        return web.json_response({name: error}, status=400)
+
+                    raise web.HTTPBadRequest(reason=f"{name}: {error}")
                 except CheckError as e:
                     server_log.debug(f"Parameter {name}: check failed: {e}")
 
-                    return web.json_response({name: str(e)}, status=400)
+                    if json_response:
+                        return web.json_response({name: str(e)}, status=400)
+
+                    raise web.HTTPBadRequest(reason=f"{name}: {e}")
 
             return await endpoint(req)
 
@@ -132,3 +159,7 @@ def parse_token(endpoint: _Handler) -> _Handler:
         return await endpoint(req)
 
     return wrapper
+
+
+def redirect(req: web.Request, router_name: str) -> NoReturn:
+    raise web.HTTPFound(req.app.router[router_name].url_for())

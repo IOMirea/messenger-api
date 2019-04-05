@@ -22,9 +22,12 @@ CREATE TABLE users (
 	channel_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	last_read_message_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	bot BOOL NOT NULL,
-	email TEXT NOT NULL,
+	email TEXT NOT NULL UNIQUE,
+	email_verified NOOL NOT NULL DEFAULT false,
 	password BYTEA NOT NULL
 );
+
+CREATE UNIQUE users_unique_email_index ON users (email);
 
 CREATE TABLE channels (
 	id BIGINT PRIMARY KEY NOT NULL,

@@ -80,7 +80,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/authorize")
 @helpers.query_params(authorize_query_params, unique=True)
-@aiohttp_jinja2.template("authorize.html")
+@aiohttp_jinja2.template("auth/login.html")
 async def authorize(
     req: web.Request
 ) -> Union[Dict[str, Any], web.StreamResponse]:

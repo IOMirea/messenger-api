@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script language="javascript" type="text/javascript">
+     		$(function() {
+			var xhr = new XMLHttpRequest();
+
+			xhr.onreadystatechange = function() {
+				if (this.readyState !== XMLHttpRequest.DONE) {
+					return
+				}
+
+				if (this.status === 400) {
+					// TODO: better error handling
+					console.log(this)
+					alert('Registration error\n'+this.statusText)
+				} else if (this.status === 200) {
+					// redirect from server
+					window.location.href = this.responseURL
+				} else {
+					alert('Something went terribly wrong. Please, try to refresh page or return back later')
+				}
+			}
+
+			$('#auth_form').on('submit', function(e) {
+				// TODO: do not send until fields are not empty
+				xhr.open('POST', window.location.href, true)
+	                        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+				xhr.send(
+					'nickname=' + $('#nickname_field').val() +
+					'&email='   + $('#email_field').val()    +
+					'&password='+ $('#password_field').val()
+				)
+			})
+		});
+		</script>
+	</head>
+	<body>
+		<form id="auth_form" onsubmit="return false;">
+			Nickname<br>
+			<input type="text" id="nickname_field" name="nickname"><br>
+			Email<br>
+			<input type="text" id="email_field" name="email"><br>
+			Password<br>
+			<input type="text" id="password_field" name="password"><br><br>
+			<input type="submit" value="register">
+		</form>
+</body>
+</html>
