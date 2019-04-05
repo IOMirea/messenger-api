@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from typing import Dict
+from typing import Dict, Tuple, Any
 
 import asyncpg
 import aiohttp
@@ -39,68 +39,61 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
     await app["pg_conn"].close()
 
 
-class DBObject:
-    """
-    Basic database object container, adds id to keys
-    """
+class IDObject:
+    _keys: Tuple[str, ...] = ()
 
-    # mapping of database keys to pretty keys
-    _keys: Dict[str, str] = {}
+    def __init__(self) -> None:
+        """!!!Should be called at the end when overloaded!!!"""
 
-    def __init__(self, data: Dict[str, str]):
-        self._keys.update({"id": "id"})
-
-        self._data = {pk: data[dk] for dk, pk in self._keys.items()}
-
-    @classmethod
-    def from_record(cls, record: asyncpg.Record) -> "DBObject":
-        return cls(dict(record))
-
-    @classmethod
-    def from_json(cls, data: Dict[str, str]) -> "DBObject":
-        return cls(data)
+        self._keys = ("id",) + self._keys
 
     @property
-    def json(self) -> Dict[str, str]:
-        return self._data
+    def keys(self) -> str:
+        try:
+            return self._keys_str  # type: ignore
+        except AttributeError:
+            self._keys_str = ",".join(self._keys)
+
+        return self._keys_str
+
+    def to_json(self, record: asyncpg.Record) -> Dict[str, Any]:
+        return {k: record[k] for k in self._keys}
+
+    def __str__(self) -> str:
+        return self.keys
 
 
-# just a quick sketch, not full list of properties
-class User(DBObject):
-    _keys = {"name": "name", "bot": "bot"}
+class User(IDObject):
+    _keys = ("name", "bot")
 
 
-class Channel(DBObject):
-    _keys = {
-        "name": "name",
-        "user_ids": "user_ids",
-        "pinned_ids": "pinned_ids",
-    }
+class SelfUser(User):
+    def __init__(self) -> None:
+        self._keys += ("email",)  # type: ignore
+
+        super().__init__()
 
 
-class Message(DBObject):
-    _keys = {
-        "author_id": "author_id",
-        "channel_id": "channel_id",
-        "content": "content",
-        "edited": "edited",
-        "pinned": "pinned",
-    }
+class Channel(IDObject):
+    _keys = ("name", "user_ids", "pinned_ids")
 
 
-class File(DBObject):
-    _keys = {
-        "name": "name",
-        "message_id": "message_id",
-        "channel_id": "channel_id",
-        "mime": "mime",
-    }
+class Message(IDObject):
+    _keys = ("author_id", "channel_id", "content", "edited", "pinned")
 
 
-class BugReport(DBObject):
-    _keys = {
-        "user_id": "user_id",
-        "report_body": "body",
-        "device_info": "device_info",
-        "automatic": "automatic",
-    }
+class File(IDObject):
+    _keys = ("name", "message_id", "channel_id", "mime")
+
+
+class BugReport(IDObject):
+    _keys = ("user_id", "report_body", "device_info", "automatic")
+
+
+# singletons
+USER = User()
+SELF_USER = SelfUser()
+CHANNEL = Channel()
+MESSAGE = Message()
+FILE = File()
+BUGREPORT = BugReport()
