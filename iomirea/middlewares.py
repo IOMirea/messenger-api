@@ -77,6 +77,9 @@ async def match_info_validator(
 
             try:
                 # not doing propper token checks here, not even token structure
+                if token_header.startswith("Bearer "):
+                    token_header = token_header[7:]
+
                 value = Token.decode_user_id(token_header.partition(".")[0])
             except (ValueError, binascii.Error):
                 raise web.HTTPUnauthorized(reason="Bad access token passed")

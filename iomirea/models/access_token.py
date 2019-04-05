@@ -53,6 +53,9 @@ class Token:
 
     @classmethod
     def from_string(cls, input_str: str, conn: asyncpg.Connection) -> "Token":
+        if input_str.startswith("Bearer "):
+            input_str = input_str[7:]
+
         parts = input_str.split(".")
         if len(parts) != 3:
             raise ValueError("Wrong number of token parts")
