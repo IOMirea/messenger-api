@@ -126,7 +126,7 @@ async def post_register(req: web.Request) -> web.Response:
 
         if (
             await req.config_dict["rd_conn"].execute(
-                "GET", f"email_confirmation_code:{code}"
+                "GET", f"email_confirm_code:{code}"
             )
             is None
         ):  # user confirmation code expired
@@ -145,10 +145,7 @@ async def post_register(req: web.Request) -> web.Response:
     code = generate_confirmation_code(query["email"], new_user_id)
 
     await req.config_dict["rd_conn"].execute(
-        "SETEX",
-        f"email_confirmation_code:{code}",
-        864000,  # 10 days
-        new_user_id,
+        "SETEX", f"email_confirm_code:{code}", 86400, new_user_id
     )
 
     await req.config_dict["pg_conn"].fetch(
@@ -180,10 +177,10 @@ async def get_email_confirm(
     req: web.Request
 ) -> Union[web.Response, Dict[str, Any]]:
     user_id = await req.config_dict["rd_conn"].execute(
-        "GET", f"email_confirmation_code:{req['query']['code']}"
+        "GET", f"email_confirm_code:{req['query']['code']}"
     )
     await req.config_dict["rd_conn"].execute(
-        "DEL", f"email_confirmation_code:{req['query']['code']}"
+        "DEL", f"email_confirm_code:{req['query']['code']}"
     )
 
     if user_id is None:
@@ -191,7 +188,7 @@ async def get_email_confirm(
             "confirmation_status": (
                 "Wrong confirmation code!\n\n"
                 "Please, let us know if you have registration problems.\n"
-                "Notice: email confirmation codes are valid for 10 days"
+                "Notice: email confirmation codes are valid for 24 hours"
             )
         }
 
