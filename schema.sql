@@ -60,6 +60,8 @@ CREATE TABLE tokens (
 	scope TEXT[] NOT NULL
 );
 
+CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
+
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
 	secret TEXT NOT NULL,

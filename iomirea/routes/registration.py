@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
+import ssl
 import hmac
 import base64
 import smtplib
@@ -61,22 +62,16 @@ def send_confirmation_code(email: str, code: str, req: web.Request) -> None:
 
     text = (
         f"Subject: IOMirea registration confirmation\n\n"
-        f"You recieved this email because your email was used to register on"
-        f"IOMirea service. If you did not do it, please, ignore this email."
-        f"Otherwise use this url to finish your registration: {url}"
+        f"This email was used to register on IOMirea service.\n"
+        f"If you did not do it, please, ignore this message.\n\n"
+        f"To finish registration, use this url: {url}"
     )
-
-    server_log.info(
-        f"About to send email confirmation message, but don't have implementation yet.\n"
-        f"Sending to {email}: \n"
-        f"{text}"
-    )
-
-    return
 
     config = req.config_dict["config"]["email-confirmation"]
 
-    with smtplib.SMTP_SSL(config["smtp"]["host"]) as smtp:
+    with smtplib.SMTP_SSL(
+        config["smtp"]["host"], port=465, context=ssl.create_default_context()
+    ) as smtp:
         smtp.login(config["smtp"]["login"], config["smtp"]["password"])
         smtp.sendmail(config["smtp"]["login"], email, text.encode("utf8"))
 

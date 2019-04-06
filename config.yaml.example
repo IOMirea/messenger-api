@@ -1,5 +1,5 @@
 app-port: 8080
-config-version: 2
+config-version: 4
 error-reporter:
   smtp:
     host: SMTP-HOST
@@ -7,6 +7,11 @@ error-reporter:
     password: SMTP-PASSWORD
   targets:
   - EMAIL
+email-confirmation:
+  smtp:
+    host: EMAIL-CONFIRMATION-SMTP-HOST
+    login: EMAIL-CONFIRMATION-SMTP-LOGIN
+    password: EMAIL-CONFIRMATION-SMTP-PASSWORD
 github-webhook-token: GITHUB-TOKEN
 logging:
   basic-log-format: '[{asctime} {levelname}]{name}: '

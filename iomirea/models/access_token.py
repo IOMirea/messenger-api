@@ -118,9 +118,9 @@ class Token:
 
     async def exists(self) -> bool:
         record = await self._conn.fetchval(
-            "SELECT (scope, app_id) FROM tokens WHERE user_id = $1 AND hmac_component = $2",
-            self.user_id,
+            "SELECT (scope, app_id) FROM tokens WHERE hmac_component = $1 AND user_id = $2",
             self._parts[2],
+            self.user_id,
         )
 
         if record is None:
