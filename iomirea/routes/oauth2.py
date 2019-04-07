@@ -33,6 +33,7 @@ from models.access_token import Token
 from utils import helpers
 from errors import ConvertError
 from constants import EXISTING_SCOPES
+from db.postgres import APPLICATION
 from security.security_checks import check_user_password
 
 
@@ -92,7 +93,7 @@ async def authorize(
         # TODO: check redirect_uri
 
         record = await req.config_dict["pg_conn"].fetchrow(
-            "SELECT name, redirect_uri FROM applications WHERE id = $1",
+            f"SELECT {APPLICATION} FROM applications_with_owner WHERE id = $1",
             query["client_id"],
         )
 
@@ -104,11 +105,15 @@ async def authorize(
         if record["redirect_uri"] != query["redirect_uri"]:
             raise web.HTTPBadRequest(reason="Bad redirect_uri passed")
 
+        app = APPLICATION.to_json(record)
+
         return {
             "redirect_uri": record["redirect_uri"],
-            "app_name": record["name"],
             "scope": " ".join(query["scope"]),
             "state": query["state"],
+            "app_name": app["name"],
+            "app_author_id": app["author"]["id"],
+            "app_author_name": app["author"]["name"],
         }
 
     elif query["response_type"] == "token":

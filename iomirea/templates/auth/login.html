@@ -5,8 +5,9 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 		<script language="javascript" type="text/javascript">
      		$(function() {
-			var redirect_uri = "{{ redirect_uri }}"
 			var app_name = "{{ app_name }}"
+
+			var redirect_uri = "{{ redirect_uri }}"
 			var scope = "{{ scope }}"
 			var state = "{{ state }}"
 
@@ -54,7 +55,8 @@
 	<body>
 		<form id="auth_form" onsubmit="return false;">
 			Scope: {{ scope }}<br>
-			App Name: {{ app_name }}<br>
+			Application: {{ app_name }}<br>
+			Made by {{ app_author_name }} ( {{ app_author_id }} )<br>
 			Login<br>
 			<input type="text" id="login_field" name="login"><br>
 			Password<br>

@@ -110,6 +110,15 @@ class BugReport(IDObject):
     _keys = ("user_id", "report_body", "device_info", "automatic")
 
 
+class PlainApplication(IDObject):
+    _keys = ("name", "redirect_uri")
+
+
+class Application(IDObject):
+    _keys = ("name", "redirect_uri")
+    _embedded = {"author": ("id", "name")}
+
+
 # singletons
 USER = User()
 SELF_USER = SelfUser()
@@ -118,3 +127,5 @@ PLAIN_MESSAGE = PlainMessage()
 MESSAGE = Message()
 FILE = File()
 BUGREPORT = BugReport()
+PLAIN_APPLICATION = PlainApplication()
+APPLICATION = Application()
