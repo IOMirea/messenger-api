@@ -26,7 +26,7 @@ async def get_message(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     record = await req.config_dict["pg_conn"].fetchrow(
-        f"SELECT {MESSAGE} FROM messages WHERE channel_id=$1 AND id=$2",
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND id=$2",
         channel_id,
         message_id,
     )
@@ -59,7 +59,7 @@ async def get_messages(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     records = await req.config_dict["pg_conn"].fetch(
-        f"SELECT {MESSAGE} FROM messages WHERE channel_id=$1 ORDER BY id LIMIT $2 OFFSET $3",
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 ORDER BY id LIMIT $2 OFFSET $3",
         channel_id,
         limit,
         offset,
@@ -102,7 +102,7 @@ async def get_pins(req: web.Request) -> web.Response:
     await ensure_existance(req, "channels", channel_id, "Channel")
 
     records = await req.config_dict["pg_conn"].fetch(
-        f"SELECT {MESSAGE} FROM messages WHERE channel_id=$1 AND pinned=true",
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND pinned=true",
         channel_id,
     )
 

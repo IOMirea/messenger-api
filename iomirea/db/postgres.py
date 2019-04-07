@@ -41,6 +41,7 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 class IDObject:
     _keys: Tuple[str, ...] = ()
+    _embedded: Dict[str, Tuple[str, ...]] = {}
 
     def __init__(self) -> None:
         """!!!Should be called at the end when overloaded!!!"""
@@ -52,12 +53,26 @@ class IDObject:
         try:
             return self._keys_str  # type: ignore
         except AttributeError:
-            self._keys_str = ",".join(self._keys)
+            keys = list(self._keys)
+
+            for e, e_keys in self._embedded.items():
+                for ek in e_keys:
+                    keys.append(f"_{e}_{ek}")
+
+            self._keys_str = ",".join(keys)
 
         return self._keys_str
 
     def to_json(self, record: asyncpg.Record) -> Dict[str, Any]:
-        return {k: record[k] for k in self._keys}
+        obj = {k: record[k] for k in self._keys}
+
+        for embedded, e_keys in self._embedded.items():
+            obj[embedded] = {}
+
+            for ek in e_keys:
+                obj[embedded][ek] = record[f"_{embedded}_{ek}"]
+
+        return obj
 
     def __str__(self) -> str:
         return self.keys
@@ -78,8 +93,13 @@ class Channel(IDObject):
     _keys = ("name", "user_ids", "pinned_ids")
 
 
+class PlainMessage(IDObject):
+    _keys = ("author_id", "channel_id", "content", "edit_id", "pinned")
+
+
 class Message(IDObject):
-    _keys = ("author_id", "channel_id", "content", "edited", "pinned")
+    _keys = ("edit_id", "channel_id", "content", "pinned")
+    _embedded = {"author": ("id", "name", "bot")}
 
 
 class File(IDObject):
@@ -94,6 +114,7 @@ class BugReport(IDObject):
 USER = User()
 SELF_USER = SelfUser()
 CHANNEL = Channel()
+PLAIN_MESSAGE = PlainMessage()
 MESSAGE = Message()
 FILE = File()
 BUGREPORT = BugReport()

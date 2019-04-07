@@ -5,16 +5,33 @@ CREATE TABLE versions (
 
 CREATE TABLE messages (
 	id BIGINT PRIMARY KEY NOT NULL,
+	edit_id BIGINT,
 	channel_id BIGINT NOT NULL,
 	author_id BIGINT NOT NULL,
 	content VARCHAR(2048) NOT NULL,
 	encrypted BOOL NOT NULL DEFAULT false,
 	pinned BOOL NOT NULL DEFAULT false,
-	edited BOOL NOT NULL DEFAULT false,
 	deleted BOOL NOT NULL DEFAULT false
 );
 
 CREATE INDEX messages_channel_index ON messages(channel_id);
+
+CREATE VIEW existing_messages AS SELECT * FROM messages WHERE deleted = false;
+
+CREATE VIEW messages_with_author AS
+  SELECT
+    msg.id,
+    msg.edit_id,
+    msg.channel_id,
+    msg.content,
+    msg.pinned,
+
+    usr.id AS _author_id,
+    usr.name AS _author_name,
+    usr.bot AS _author_bot
+  FROM existing_messages msg
+  INNER JOIN users usr
+  ON msg.author_id = usr.id;
 
 CREATE TABLE users (
 	id BIGINT PRIMARY KEY NOT NULL,
@@ -64,7 +81,21 @@ CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
 
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
+	owner_id BIGING NOT NULL,
 	secret TEXT NOT NULL,
 	redirect_uri TEXT NOT NULL,
 	name VARCHAR(256) NOT NULL
 );
+
+CREATE VIEW applications_with_owner AS
+  SELECT
+    app.id,
+    app.redirect_uri,
+    app.name,
+    app.secret,
+
+    usr.id AS _authorr_id,
+    usr.name AS _author_name
+  FROM applications app
+  INNER JOIN users usr
+  ON app.owner_id = usr.id;
