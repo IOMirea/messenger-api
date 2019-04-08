@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, Optional, List
 
 import asyncpg
 import aiohttp
@@ -41,7 +41,7 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 class IDObject:
     _keys: Tuple[str, ...] = ()
-    _embedded: Dict[str, Tuple[str, ...]] = {}
+    _embedded: Dict[str, "IDObject"] = {}
 
     def __init__(self) -> None:
         """!!!Should be called at the end when overloaded!!!"""
@@ -53,29 +53,52 @@ class IDObject:
         try:
             return self._keys_str  # type: ignore
         except AttributeError:
-            keys = list(self._keys)
-
-            for e, e_keys in self._embedded.items():
-                for ek in e_keys:
-                    keys.append(f"_{e}_{ek}")
-
-            self._keys_str = ",".join(keys)
+            self._keys_str = ",".join(self.get_keys())
 
         return self._keys_str
 
-    def to_json(self, record: asyncpg.Record) -> Dict[str, Any]:
-        obj = {k: record[k] for k in self._keys}
+    def get_keys(self, *, embedded: Optional[str] = None) -> List[str]:
+        keys = []
+        for k in self._keys:
+            if embedded is None:
+                key = k
+            else:
+                key = f"_{embedded}_{k}"
 
-        for embedded, e_keys in self._embedded.items():
-            obj[embedded] = {}
+            keys.append(key)
 
-            for ek in e_keys:
-                obj[embedded][ek] = record[f"_{embedded}_{ek}"]
+        for e_name, e_cls in self._embedded.items():
+            for k in e_cls.get_keys(embedded=e_name):
+                if embedded is None:
+                    key = k
+                else:
+                    key = f"_{embedded}{k}"
+
+                keys.append(key)
+
+        return keys
+
+    def to_json(
+        self, record: asyncpg.Record, *, embedded: Optional[str] = None
+    ) -> Dict[str, Any]:
+        obj: Dict[str, Any] = {}
+
+        for k in self._keys:
+            if embedded is None:
+                obj[k] = k
+            else:
+                obj[k] = record[f"_{embedded}_{k}"]
+
+        for e_name, e_cls in self._embedded.items():
+            obj[e_name] = e_cls.to_json(record, embedded=e_name)
 
         return obj
 
     def __str__(self) -> str:
         return self.keys
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} _embedded={self._embedded}>"
 
 
 class User(IDObject):
@@ -83,10 +106,8 @@ class User(IDObject):
 
 
 class SelfUser(User):
-    def __init__(self) -> None:
-        self._keys += ("email",)  # type: ignore
-
-        super().__init__()
+    _keys = User._keys + ("email",)  # type: ignore
+    _embedded = {"test": User()}
 
 
 class Channel(IDObject):
@@ -99,7 +120,7 @@ class PlainMessage(IDObject):
 
 class Message(IDObject):
     _keys = ("edit_id", "channel_id", "content", "pinned")
-    _embedded = {"author": ("id", "name", "bot")}
+    _embedded = {"author": User()}
 
 
 class File(IDObject):
@@ -116,7 +137,7 @@ class PlainApplication(IDObject):
 
 class Application(IDObject):
     _keys = ("name", "redirect_uri")
-    _embedded = {"author": ("id", "name")}
+    _embedded = {"owner": User()}
 
 
 # singletons

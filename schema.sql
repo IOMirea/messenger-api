@@ -40,8 +40,8 @@ CREATE TABLE users (
 	last_read_message_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	bot BOOL NOT NULL,
 	email TEXT NOT NULL UNIQUE,
-	email_verified NOOL NOT NULL DEFAULT false,
-	password BYTEA NOT NULL
+	password BYTEA NOT NULL,
+	verified BOOL NOT NULL DEFAULT false
 );
 
 CREATE UNIQUE users_unique_email_index ON users (email);
@@ -94,8 +94,9 @@ CREATE VIEW applications_with_owner AS
     app.name,
     app.secret,
 
-    usr.id AS _authorr_id,
-    usr.name AS _author_name
+    usr.id AS _owner_id,
+    usr.name AS _owner_name,
+    usr.bot AS _owner_bot
   FROM applications app
   INNER JOIN users usr
   ON app.owner_id = usr.id;

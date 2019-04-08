@@ -112,8 +112,8 @@ async def authorize(
             "scope": " ".join(query["scope"]),
             "state": query["state"],
             "app_name": app["name"],
-            "app_author_id": app["author"]["id"],
-            "app_author_name": app["author"]["name"],
+            "app_author_id": app["owner"]["id"],
+            "app_author_name": app["owner"]["name"],
         }
 
     elif query["response_type"] == "token":
