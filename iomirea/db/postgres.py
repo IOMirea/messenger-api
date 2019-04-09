@@ -85,7 +85,7 @@ class IDObject:
 
         for k in self._keys:
             if embedded is None:
-                obj[k] = k
+                obj[k] = record[k]
             else:
                 obj[k] = record[f"_{embedded}_{k}"]
 
