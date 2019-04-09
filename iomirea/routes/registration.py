@@ -29,7 +29,6 @@ import aiohttp_jinja2
 
 from aiohttp import web
 
-from log import server_log
 from utils import helpers
 from models import converters, checks
 from errors import ConvertError
@@ -103,13 +102,13 @@ async def post_register(req: web.Request) -> web.Response:
     query = req["query"]
 
     user = await req.config_dict["pg_conn"].fetchrow(
-        "SELECT id, name, email, email_verified FROM users WHERE name = $1 OR email = $2",
+        "SELECT id, name, email, verified FROM users WHERE name = $1 OR email = $2",
         query["nickname"],
         query["email"],
     )
 
     if user is not None:
-        if user["email_verified"]:
+        if user["verified"]:
             if user["name"] == query["nickname"]:
                 raise web.HTTPBadRequest(
                     reason="Nickname is already registered"
@@ -191,7 +190,7 @@ async def get_email_confirm(
 
     # TODO: check code / handle wrong user_id errors?
     await req.config_dict["pg_conn"].fetch(
-        "UPDATE users SET email_verified = true WHERE id = $1", user_id
+        "UPDATE users SET verified = true WHERE id = $1", user_id
     )
 
     return {"confirmation_status": "Email successfully confirmed!"}
