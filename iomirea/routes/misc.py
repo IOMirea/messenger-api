@@ -34,10 +34,6 @@ from updater import updater
 routes = web.RouteTableDef()
 
 
-# TODO: use nginx
-routes.static("/", "iomirea/static/", append_version=True)
-
-
 @routes.get("/")
 @aiohttp_jinja2.template("index.html")
 async def index(req: web.Request) -> Dict[str, Any]:

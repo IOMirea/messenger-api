@@ -8,15 +8,24 @@ server {
 	include /etc/letsencrypt/options-ssl-nginx.conf;
 	ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-	location / {
+	location /api/ {
 		include proxy_params;
 
 		# redirect requests from /api/* to the latest API endpoint /api/v0/*
 		rewrite ^/api/((?!v\d+).*)$ /api/v0/$1 last;
+	}
 
-		location /api/oauth2/ {
-			include proxy_params;
-		}
+	location /api/oauth2 {
+		include proxy_params;
+	}
+
+	location / {
+		root /home/iomirea/IOMirea-server/iomirea/static;
+		try_files $uri @backend;
+	}
+
+	location @backend {
+		include proxy_params;
 	}
 }
 
