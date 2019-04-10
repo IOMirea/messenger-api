@@ -6,7 +6,15 @@ from aiohttp import web
 import asyncpg
 
 from routes.api import v0_endpoints_public as endpoints_public
-from db.postgres import USER, SELF_USER, CHANNEL, MESSAGE, FILE, BUGREPORT
+from db.postgres import (
+    USER,
+    SELF_USER,
+    CHANNEL,
+    MESSAGE,
+    FILE,
+    BUGREPORT,
+    PLAIN_MESSAGE,
+)
 from utils import helpers
 from utils.db import ensure_existance
 from models import converters, checks
@@ -83,14 +91,14 @@ async def send_message(req: web.Request) -> web.Response:
     snowflake = req.config_dict["sf_gen"].gen_id()
 
     record = await req.config_dict["pg_conn"].fetchrow(
-        f"INSERT INTO messages (id, author_id, channel_id, content) VALUES ($1, $2, $3, $4) RETURNING {MESSAGE}",
+        f"INSERT INTO messages (id, author_id, channel_id, content) VALUES ($1, $2, $3, $4) RETURNING {PLAIN_MESSAGE}",
         snowflake,
         req["access_token"].user_id,
         req["match_info"]["channel_id"],
         req["query"]["content"],
     )
 
-    return web.json_response(MESSAGE.to_json(record))
+    return web.json_response(PLAIN_MESSAGE.to_json(record))
 
 
 @routes.get(endpoints_public.PINNED_MESSAGES)
