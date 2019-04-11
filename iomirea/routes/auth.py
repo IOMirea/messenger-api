@@ -32,6 +32,7 @@ from aiohttp import web
 from utils import helpers
 from models import converters, checks
 from errors import ConvertError
+from security.security_checks import check_user_password
 
 
 class Email(converters.Converter):
@@ -194,3 +195,39 @@ async def get_email_confirm(
     )
 
     return {"confirmation_status": "Email successfully confirmed!"}
+
+
+@routes.get("/login")
+@helpers.query_params({"redirect": converters.String(default=None)})
+@aiohttp_jinja2.template("auth/login.html")
+async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
+    redirect = req["query"]["redirect"]
+
+    return {
+        "redirect": f"{req.scheme}://{req.host}"
+        if redirect is None
+        else redirect
+    }
+
+
+@routes.post("/login")
+@helpers.query_params(
+    {"login": converters.String(), "password": converters.String()},
+    unique=True,
+    from_body=True,
+)
+async def post_login(req: web.Request) -> web.Response:
+    query = req["query"]
+
+    record = await req.config_dict["pg_conn"].fetchrow(
+        "SELECT id, password FROM users WHERE email = $1", query["login"]
+    )
+
+    if record is None:
+        raise web.HTTPUnauthorized()
+
+    if not await check_user_password(query["password"], record["password"]):
+        raise web.HTTPUnauthorized()
+
+    # TODO: remember user id in session
+    return web.Response(text=str(record["id"]))

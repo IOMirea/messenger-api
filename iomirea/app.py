@@ -33,7 +33,7 @@ from aiohttp import web
 import middlewares
 
 from routes.api.v0 import routes as api_v0_routes
-from routes.registration import routes as registration_routes
+from routes.auth import routes as auth_routes
 from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     app.on_cleanup.append(close_postgres_connection)
     app.on_cleanup.append(close_redis_connection)
 
-    app.router.add_routes(registration_routes)
+    app.router.add_routes(auth_routes)
     app.router.add_routes(misc_routes)
 
     # API subapps

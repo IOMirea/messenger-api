@@ -34,7 +34,6 @@ from utils import helpers
 from errors import ConvertError
 from constants import EXISTING_SCOPES
 from db.postgres import APPLICATION
-from security.security_checks import check_user_password
 
 
 class Scope(converters.Converter):
@@ -81,7 +80,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/authorize")
 @helpers.query_params(authorize_query_params, unique=True)
-@aiohttp_jinja2.template("auth/login.html")
+@aiohttp_jinja2.template("auth/oauth_confirmation.html")
 async def authorize(
     req: web.Request
 ) -> Union[Dict[str, Any], web.StreamResponse]:
@@ -129,23 +128,16 @@ async def authorize(
 
 @routes.post("/authorize")
 @helpers.query_params(authorize_query_params, unique=True)
-@helpers.query_params(
-    {"login": converters.String(), "password": converters.String()},
-    unique=True,
-    from_body=True,
-)
 async def post_authorize(req: web.Request) -> web.Response:
     query = req["query"]
+    post_data = await req.post()
 
-    record = await req.config_dict["pg_conn"].fetchrow(
-        "SELECT id, password FROM users WHERE email = $1", query["login"]
-    )
+    if not post_data.get("confirm_btn"):
+        return web.HTTPFound(
+            query["redirect_uri"] + "&error=user has denied access"
+        )
 
-    if record is None:
-        raise web.HTTPUnauthorized()
-
-    if not await check_user_password(query["password"], record["password"]):
-        raise web.HTTPUnauthorized()
+    user_id = 0  # TODO: get from session
 
     message = ".".join([str(query["client_id"]), query["redirect_uri"]])
     key = secrets.token_bytes(20)
@@ -157,10 +149,10 @@ async def post_authorize(req: web.Request) -> web.Response:
         "SETEX",
         f"auth_code:{code}",
         10 * 60,
-        f"{record['id']}:{encoded_key}:{' '.join(query['scope'])}",
+        f"{user_id}:{encoded_key}:{' '.join(query['scope'])}",
     )
 
-    return web.Response(text=code)
+    return web.HTTPFound(query["redirect_uri"] + f"&code={code}")
 
 
 @routes.post("/token")

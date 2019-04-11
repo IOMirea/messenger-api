@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+  
+
+<head>
+	<title>Access confirmation</title>
+	<meta charset="utf-8" />
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script type="text/javascript">
+
+     	$(function() {
+		// TODO: let user modify scope
+	});
+	</script>
+	<style>body { background: #ffd999 /* Цвет фона */ }</style>
+</head>
+<body>
+	<header style="background-color: #F5B530;">
+		<span
+			style="color: #FF8C00; font-size: 170%; font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', 'DejaVu Sans', Verdana, sans-serif;">
+			<img src="https://iomirea.ml/logo.png" width="100" height="95" alt=""/>
+			<span style="text-align: left; color: #6A5ACD;">IOMirea</span>
+		</span>
+	</header>
+	<form id="auth_form" method="POST">
+		Application: {{ app_name }}<br>
+		Made by {{ app_author_name }} ( {{ app_author_id }} )<br>
+		Scope: {{ scope }}<br>
+		<p />
+		<input type="submit" name="confirm_btn" value="Confirm">
+		<input type="submit" name="deny_btn" value="Deny">
+	</form>
+</body>
