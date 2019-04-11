@@ -1,0 +1,73 @@
+@charset "utf-8";
+/* CSS Document */
+
+header{
+	font-size:20px;
+	color:#6A5ACD;
+	text-align: left;
+	font:"Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", Verdana, "sans-serif";
+}
+
+body{
+background-image: url("fox.jpg")}
+#top{margin-bottom: 25px;}
+
+div{
+	margin-top: 20%;
+	color: #FFFFFF;
+	text-align: center;
+	font-size:17px;
+	align-content: center;
+	height: 225px;
+	width: 250px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color:#ffb959;
+	padding: 10px;
+	border-radius: 20px;
+	box-shadow:0px 0px 4px 1px #975B0B;
+}
+
+
+
+.uinp{
+	margin-bottom: 3px;
+	margin-top: 3px;
+	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
+	font-size: 15px;
+	border-style:inset;
+	border-width: 2px;
+	border-color: #FFAE42;
+	border-radius: 3px;
+	background-color: #FFB34F;
+	color: #FFFFFF;
+	
+}
+
+.button{
+	width: 100px;
+	text-align: center;
+	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
+	font-size: 15px;
+	border-style: outset;
+	border-width: 3px;
+	border-color: #FFA01E;
+	border-radius: 4px;
+	background-color: #FFA731;
+	color: #FFFFFF;
+}
+
+.button:hover{
+	border-width: 3px;
+	border-color: #FF942A;
+	background-color: #FF9B39;
+	color: #EDEDED;
+}
+
+.button:active{
+	border-style: inset;
+	border-width: 3px;
+	border-color: #DB7F00;
+	background-color: #EA8600;
+	color: #D9D9D9;
+}
