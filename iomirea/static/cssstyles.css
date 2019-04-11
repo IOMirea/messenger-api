@@ -10,7 +10,7 @@ header{
 
 body{
 	background-image: url("https://iomirea.ml/fox.jpg");
-	background-size:cover;
+	background-size:100%;
 }
 
 #top{margin-bottom: 25px;}
