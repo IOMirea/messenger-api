@@ -9,11 +9,15 @@ header{
 }
 
 body{
-background-image: url("https://iomirea.ml/fox.jpg")}
+	background-image: url("https://iomirea.ml/fox.jpg")
+	background-size:cover;
+}
+
 #top{margin-bottom: 25px;}
 
 div{
-	margin-top: 20%;
+	margin-top: 15%;
+	margin-bottom: 15%;
 	color: #FFFFFF;
 	text-align: center;
 	font-size:17px;
