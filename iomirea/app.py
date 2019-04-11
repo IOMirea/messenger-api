@@ -82,7 +82,10 @@ async def on_startup(app: web.Application) -> None:
     # support for X-Forwarded headers
     await aiohttp_remotes.setup(app, aiohttp_remotes.XForwardedRelaxed())
 
-    aiohttp_session.setup(app, RedisStorage(app["rd_conn"]))
+    max_cookie_age = 2592000  # 30 days
+    aiohttp_session.setup(
+        app, RedisStorage(app["rd_conn"], max_age=max_cookie_age)
+    )
 
 
 if __name__ == "__main__":
