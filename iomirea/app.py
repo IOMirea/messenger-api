@@ -25,9 +25,10 @@ from typing import Optional
 
 import jinja2
 import aiohttp_jinja2
+import aiohttp_remotes
+import aiohttp_session
 
-from aiohttp_remotes import setup, XForwardedRelaxed
-
+from aiohttp_session.redis_storage import RedisStorage
 from aiohttp import web
 
 import middlewares
@@ -42,7 +43,7 @@ from config import Config
 from log import setup_logging, server_log, AccessLogger
 
 from db.postgres import create_postgres_connection, close_postgres_connection
-from db.redis import create_redis_connection, close_redis_connection
+from db.redis import create_redis_pool, close_redis_pool
 
 
 try:
@@ -74,8 +75,14 @@ argparser.add_argument(
 
 
 async def on_startup(app: web.Application) -> None:
+    aiohttp_jinja2.setup(
+        app, loader=jinja2.FileSystemLoader("iomirea/templates")
+    )
+
     # support for X-Forwarded headers
-    await setup(app, XForwardedRelaxed())
+    await aiohttp_remotes.setup(app, aiohttp_remotes.XForwardedRelaxed())
+
+    aiohttp_session.setup(app, RedisStorage(app["rd_conn"]))
 
 
 if __name__ == "__main__":
@@ -86,11 +93,11 @@ if __name__ == "__main__":
     app["sf_gen"] = SnowflakeGenerator()
 
     app.on_startup.append(create_postgres_connection)
-    app.on_startup.append(create_redis_connection)
+    app.on_startup.append(create_redis_pool)
     app.on_startup.append(on_startup)
 
     app.on_cleanup.append(close_postgres_connection)
-    app.on_cleanup.append(close_redis_connection)
+    app.on_cleanup.append(close_redis_pool)
 
     app.router.add_routes(auth_routes)
     app.router.add_routes(misc_routes)
@@ -118,11 +125,6 @@ if __name__ == "__main__":
 
     # logging setup
     setup_logging(app)
-
-    # templates setup
-    aiohttp_jinja2.setup(
-        app, loader=jinja2.FileSystemLoader("iomirea/templates")
-    )
 
     # SSL setup
     ssl_context: Optional[ssl.SSLContext] = None

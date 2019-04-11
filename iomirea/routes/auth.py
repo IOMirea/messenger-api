@@ -27,6 +27,7 @@ from typing import Dict, Any, Union
 import bcrypt
 import aiohttp_jinja2
 
+from aiohttp_session import new_session, get_session
 from aiohttp import web
 
 from utils import helpers
@@ -194,10 +195,13 @@ async def get_email_confirm(
         "UPDATE users SET verified = true WHERE id = $1", user_id
     )
 
+    session = await new_session(req)
+    session["user_id"] = user_id
+
     return {"confirmation_status": "Email successfully confirmed!"}
 
 
-@routes.get("/login")
+@routes.get("/login", name="login")
 @helpers.query_params({"redirect": converters.String(default=None)})
 @aiohttp_jinja2.template("auth/login.html")
 async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
@@ -229,5 +233,15 @@ async def post_login(req: web.Request) -> web.Response:
     if not await check_user_password(query["password"], record["password"]):
         raise web.HTTPUnauthorized()
 
-    # TODO: remember user id in session
-    return web.Response(text=str(record["id"]))
+    session = await new_session(req)
+    session["user_id"] = record["id"]
+
+    return web.Response()
+
+
+@routes.get("/logout", name="logout")
+async def logout(req: web.Request) -> web.Response:
+    session = await get_session(req)
+    session.invalidate()
+
+    return web.Response(text="Logged out")

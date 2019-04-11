@@ -22,10 +22,12 @@ import hmac
 import base64
 import secrets
 
+from urllib.parse import urlencode
 from typing import Any, Union, Dict, List
 
 import aiohttp_jinja2
 
+from aiohttp_session import get_session
 from aiohttp import web
 
 from models import converters, checks
@@ -104,6 +106,13 @@ async def authorize(
         if record["redirect_uri"] != query["redirect_uri"]:
             raise web.HTTPBadRequest(reason="Bad redirect_uri passed")
 
+        session = await get_session(req)
+        if "user_id" not in session:
+            # TODO: figure out how to avoid hardcoding login path
+            return web.HTTPFound(
+                f"{req.scheme}://{req.host}/login?{urlencode({'redirect': req.url})}"
+            )
+
         app = APPLICATION.to_json(record)
 
         return {
@@ -129,6 +138,12 @@ async def authorize(
 @routes.post("/authorize")
 @helpers.query_params(authorize_query_params, unique=True)
 async def post_authorize(req: web.Request) -> web.Response:
+    session = await get_session(req)
+    try:
+        user_id = session["user_id"]
+    except KeyError:
+        raise web.HTTPUnauthorized(reason="Bad cookie")
+
     query = req["query"]
     post_data = await req.post()
 
@@ -136,8 +151,6 @@ async def post_authorize(req: web.Request) -> web.Response:
         return web.HTTPFound(
             query["redirect_uri"] + "&error=user has denied access"
         )
-
-    user_id = 0  # TODO: get from session
 
     message = ".".join([str(query["client_id"]), query["redirect_uri"]])
     key = secrets.token_bytes(20)

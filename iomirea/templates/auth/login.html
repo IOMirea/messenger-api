@@ -18,7 +18,7 @@
 			if (this.status === 401) {
 				alert('Wrong login or password')
 			} else if (this.status === 200) {
-				window.location.assign(redirect)
+				window.location.assign(redirect.replace("&amp;", "&"))
 			} else {
 				alert('Something went terribly wrong. Please, try to refresh page or return back later')
 			}

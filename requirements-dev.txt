@@ -6,6 +6,7 @@
 #
 aiohttp-jinja2==1.1.0
 aiohttp-remotes==0.1.2
+aiohttp-session[aioredis]==2.7.0
 aiohttp==3.5.4
 aioredis==1.2.0
 appdirs==1.4.3            # via black

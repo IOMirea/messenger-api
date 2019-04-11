@@ -7,19 +7,19 @@ from aiohttp import web
 from log import server_log
 
 
-async def create_redis_connection(app: web.Application) -> None:
+async def create_redis_pool(app: web.Application) -> None:
     server_log.info("Creating redis connection")
 
     config = copy(app["config"].redis)
     host = config.pop("host")
     port = config.pop("port")
 
-    connection = await aioredis.create_connection((host, port), **config)
+    pool = await aioredis.create_pool((host, port), **config)
 
-    app["rd_conn"] = connection
+    app["rd_conn"] = pool
 
 
-async def close_redis_connection(app: web.Application) -> None:
+async def close_redis_pool(app: web.Application) -> None:
     server_log.info("Closing redis connection")
 
     app["rd_conn"].close()

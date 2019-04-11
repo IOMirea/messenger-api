@@ -7,3 +7,4 @@ aiohttp
 aiohttp_jinja2
 aiohttp_remotes
 bcrypt
+aiohttp_session[aioredis]
