@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
 	<meta charset="utf-8" />
 	<title>Authorization</title>
@@ -7,7 +8,7 @@
 	<script type="text/javascript">
 
      	$(function() {
-		var redirect = "{{ redirect }}"
+		var redirect = "{{ redirect|safe }}"
 
 		var xhr = new XMLHttpRequest();
 
@@ -18,7 +19,7 @@
 			if (this.status === 401) {
 				alert('Wrong login or password')
 			} else if (this.status === 200) {
-				window.location.assign(redirect.replace("&amp;", "&"))
+				window.location.assign(redirect)
 			} else {
 				alert('Something went terribly wrong. Please, try to refresh page or return back later')
 			}
@@ -61,3 +62,4 @@
 		</table>
 	</form>
 </body>
+<html>

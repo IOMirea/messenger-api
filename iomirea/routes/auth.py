@@ -242,6 +242,8 @@ async def post_login(req: web.Request) -> web.Response:
 @routes.get("/logout", name="logout")
 async def logout(req: web.Request) -> web.Response:
     session = await get_session(req)
-    session.invalidate()
+    if session.get("user_id") is not None:
+        session.invalidate()
+        return web.HTTPFound(req.app.router["login"].url_for())
 
-    return web.Response(text="Logged out")
+    raise web.HTTPForbidden()
