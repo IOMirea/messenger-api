@@ -8,17 +8,17 @@ header{
 	font:"Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", Verdana, "sans-serif";
 }
 
-body{
+html{
 	background-image: url("https://iomirea.ml/fox.jpg");
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	background-size:cover;
 }
 @media only screen and (max-width: 767px) {
-  body {
+  html {
   	background-image: url("https://iomirea.ml/fox.jpg");
 	  background-position: center center;
-	 background-size:cover cover;
+	 background-size:cover;
   }
 }
 
