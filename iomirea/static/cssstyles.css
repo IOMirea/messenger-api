@@ -12,6 +12,7 @@ body{
 	background-image: url("https://iomirea.ml/fox.jpg");
 	background-repeat: no-repeat;
 	background-attachment: fixed;
+	background-size:contain;
 	background-size: cover;
 }
 
