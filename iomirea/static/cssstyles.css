@@ -41,8 +41,8 @@ div{
 }
 @media only screen and (max-width: 767px) and (orientation:landscape){
   div {
-  	margin-top: 10%;
-	  margin-bottom: 10%;
+  	margin-top: 6%;
+	  margin-bottom: 6%;
   }
 }
 
