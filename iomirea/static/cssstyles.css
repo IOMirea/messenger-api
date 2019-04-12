@@ -12,7 +12,10 @@ body{
 	background-image: url("https://iomirea.ml/fox.jpg");
 	background-repeat: no-repeat;
 	background-attachment: fixed;
-	background-size: 100%;
+	background-size: cover;
+}
+@media only screen and (max-width: 767px) {
+  body {background-color: #FFD999;}
 }
 
 #top{margin-bottom: 25px;}
