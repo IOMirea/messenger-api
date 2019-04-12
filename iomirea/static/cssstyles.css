@@ -9,8 +9,10 @@ header{
 }
 
 body{
-	background: #ffd999;
-}
+	background-image: url("https://iomirea.ml/fox.jpg");
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-size: cover;
 }
 
 #top{margin-bottom: 25px;}
