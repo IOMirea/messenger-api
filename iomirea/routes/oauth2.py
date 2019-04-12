@@ -1,14 +1,17 @@
 """
 IOMirea-server - A server for IOMirea messenger
 Copyright (C) 2019  Eugene Ershov
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
+
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
@@ -19,7 +22,7 @@ import base64
 import secrets
 
 from urllib.parse import urlencode
-from typing import Any, Union, Dict
+from typing import Any, Union, Dict, List
 
 import aiohttp_jinja2
 
@@ -29,9 +32,23 @@ from aiohttp import web
 from models import converters, checks
 from models.access_token import Token
 from utils import helpers
+from constants import EXISTING_SCOPES
 from db.postgres import APPLICATION
 
 routes = web.RouteTableDef()
+
+
+class Scope(converters.Converter):
+    async def _convert(self, value: str, app: web.Application) -> List[str]:
+        scopes: List[str] = []
+
+        for i, scope in enumerate(value.split(" ")):
+            if scope not in EXISTING_SCOPES:
+                raise ValueError
+            if scope not in scopes:
+                scopes.append(scope)
+
+        return scopes
 
 
 @routes.get("/authorize")
@@ -64,13 +81,29 @@ async def authorize(
                     },
                     status=400,
                 )
+        try:
+            scope = await Scope().convert(query["scope"], req.app)
+        except ValueError:
+            return web.json_response(
+                {
+                    "error": "value_error",
+                    "error_description": "Bad argument for parameter scope",
+                },
+                status=400,
+            )
 
         try:
             client_id = await converters.ID().convert(
                 query["client_id"], req.app
             )
         except ValueError:
-            return web.json_response(...)
+            return web.json_response(
+                {
+                    "error": "value_error",
+                    "error_description": "Bad argument for parameter client_id",
+                },
+                status=400,
+            )
 
         record = await req.config_dict["pg_conn"].fetchrow(
             f"SELECT {APPLICATION} FROM applications_with_owner WHERE id = $1",
@@ -106,7 +139,7 @@ async def authorize(
 
         return {
             "redirect_uri": record["redirect_uri"],
-            "scope": " ".join(query["scope"]),
+            "scope": " ".join(scope),
             "state": query.get("state", ""),
             "app_name": app["name"],
             "app_author_id": app["owner"]["id"],
