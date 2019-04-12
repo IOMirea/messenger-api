@@ -15,10 +15,10 @@ html{
 		background-attachment: fixed;
 	background-size:cover;
 }
-@media only screen and (max-width: 767px) and (orientation: portrait) {
+@media only screen and (max-width: 767px){
   html {
   	background-image: url("https://iomirea.ml/fox.jpg");
-	  background-size: auto;
+	  background-size: cover;
   }
 }
 
