@@ -15,16 +15,22 @@ html{
 		background-attachment: fixed;
 	background-size:cover;
 }
+@media only screen and (max-width: 767px) and (orientation: portrait) {
+  html {
+  	background-image: url("https://iomirea.ml/fox.jpg");
+	  background-size: auto 100%;
+  }
+}
 
 #top{margin-bottom: 25px;}
 
 div{
 	position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    margin: auto;
+    	top: 0;
+    	right: 0;
+    	bottom: 0;
+    	left: 0;
+   	margin: auto;
 	color: #FFFFFF;
 	text-align: center;
 	font-size:17px;
