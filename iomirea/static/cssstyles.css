@@ -14,12 +14,6 @@ html{
 	background-attachment: fixed;
 	background-size:cover;
 }
-@media only screen and (max-width: 767px) {
-  html {
-	  background-image: url("https://iomirea.ml/fox.jpg");
-	  background-size:auto cover;
-  }
-}
 
 #top{margin-bottom: 25px;}
 
@@ -38,6 +32,12 @@ div{
 	padding: 10px;
 	border-radius: 20px;
 	box-shadow:0px 0px 4px 1px #975B0B;
+}
+@media only screen and (max-width: 767px) {
+  div {
+  	margin-top: 35%;
+	  margin-bottom: 35%;
+  }
 }
 
 
