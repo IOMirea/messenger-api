@@ -18,7 +18,7 @@ body{
   body {
   	background-image: url("https://iomirea.ml/fox.jpg");
 	  background-position: center center;
-	 background-size:contain 767px;
+	 background-size:cover cover;
   }
 }
 
