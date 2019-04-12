@@ -12,15 +12,19 @@ html{
 	background-image: url("https://iomirea.ml/fox.jpg");
 	background-position: center center;
 	background-repeat: no-repeat;
-	background-attachment: fixed;
-	background-size:auto cover;
+		background-attachment: fixed;
+	background-size:cover;
 }
 
 #top{margin-bottom: 25px;}
 
 div{
-	margin-top: 15%;
-	margin-bottom: 15%;
+	position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto;
 	color: #FFFFFF;
 	text-align: center;
 	font-size:17px;
