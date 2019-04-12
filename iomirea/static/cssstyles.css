@@ -17,7 +17,7 @@ body{
 @media only screen and (max-width: 767px) {
   body {
   	background-image: url("https://iomirea.ml/fox.jpg");
-	 background-size:contain;
+	 background-size:cover;
   }
 }
 
