@@ -10,6 +10,7 @@ header{
 
 body{
 	background-image: url("https://iomirea.ml/fox.jpg");
+	position:absolute;
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	background-size: cover;
