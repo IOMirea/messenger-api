@@ -37,7 +37,7 @@ div{
 @media only screen and (max-width: 767px) and (orientation:portrait){
   div {
   	margin-top: 46%;
-	  margin-bottom: 48%;
+	  margin-bottom: 47%;
   }
 }
 @media only screen and (max-width: 767px) and (orientation:landscape){
