@@ -35,8 +35,8 @@ div{
 }
 @media only screen and (max-width: 767px) {
   div {
-  	margin-top: 45%;
-	  margin-bottom: 45%;
+  	margin-top: 50%;
+	  margin-bottom: 50%;
   }
 }
 
