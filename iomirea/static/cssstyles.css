@@ -15,7 +15,7 @@ html{
 	background-attachment: fixed;
 	background-size: cover;
 }
-@media only screen and (max-width: 461px) and (orientation:portrait){
+@media only screen and (max-width: 768px) and (orientation:portrait){
   html {
 	  background-position:50% 0%;
 	  background-size: 250% auto;
