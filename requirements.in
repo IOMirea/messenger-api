@@ -2,7 +2,7 @@ uvloop
 asyncpg
 aioredis
 pyyaml>=4.2b1
-jinja2
+Jinja2>=2.10.1
 aiohttp
 aiohttp_jinja2
 aiohttp_remotes
