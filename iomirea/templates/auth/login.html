@@ -4,7 +4,6 @@
 <link href="https://iomirea.ml/cssstyles.css" rel="stylesheet" type="text/css"/>
 	
 <head>
-	
 	<title>Authorization</title>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
@@ -38,16 +37,21 @@
 	</script>
 </head>
 <body>
+	<div>
 	<form id="auth_form" onsubmit="return false;" > 
-		<div >
-			<header>
-				<img src="https://iomirea.ml/logo.png" width="42" height="42" alt=""/>
-				<span id="logotitle">IOMirea</span>
-			</header>
-			<p id="top">Login<br><input class="uinp" type="text" id="login_field" name="login"><br>Password<br><input class="uinp" type="text" id="password_field" name="password">
+	  <header>
+		<img id="logo"/>IOMirea</header>
+	  <p id="top">Login<br>
+				<input class="uinp" type="text" id="login_field" name="login">
+			<br>Password<br>
+				<input class="uinp" type="password" id="password_field" name="password">
+	  <p class="link"><a href="#">Forgot your password?</a>
 			</p>
-			<p><input class="button" type="submit" value="Login"></p>
-		</div> 
+		</p>
+	  <p><input class="button" type="submit" value="Login"></p>
+		<p class="link">Still not with us? <a href="https://iomirea.ml/register">Register</a>
+	  </p>
 	</form>
+	</div>
 </body>
 <html>
