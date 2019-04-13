@@ -1,18 +1,17 @@
 app-port: 8080
-config-version: 4
+config-version: 5
 error-reporter:
   smtp:
-    host: SMTP-HOST
-    login: SMTP-LOGIN
-    password: SMTP-PASSWORD
-  targets:
-  - EMAIL
+    host: null
+    login: null
+    password: null
+  targets: []
 email-confirmation:
   smtp:
-    host: EMAIL-CONFIRMATION-SMTP-HOST
-    login: EMAIL-CONFIRMATION-SMTP-LOGIN
-    password: EMAIL-CONFIRMATION-SMTP-PASSWORD
-github-webhook-token: GITHUB-TOKEN
+    host: null
+    login: null
+    password: null
+github-webhook-token: null
 logging:
   basic-log-format: '[{asctime} {levelname}]{name}: '
   basic-time-format: '%I:%M:%S'
@@ -22,15 +21,15 @@ logging:
   migration-log-file: migration.log
   server-log-file: server.log
 postgresql:
-  database: POSTGRES-DATABASE
+  database: null
   host: localhost
-  password: POSTGRES-PASSWORD
+  password: null
   port: 5432
-  user: POSTGRES-USER
+  user: null
 redis:
   host: localhost
   password: null
   port: 6380
 ssl:
-  cert-chain-path: CERT-CHAIN-PATH
-  cert-privkey-path: CERT-PRIVKEY-PATH
+  cert-chain-path: null
+  cert-privkey-path: null
