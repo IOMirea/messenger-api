@@ -10,35 +10,45 @@ header{
 
 html{
 	background-image: url("https://iomirea.ml/fox.jpg");
-	background-position: center center;
 	background-repeat: no-repeat;
-		background-attachment: fixed;
-	background-size:cover;
+	background-position: center center;
+	background-attachment: fixed;
+	background-size: cover;
 }
-@media only screen and (max-width: 767px){
+@media only screen and (max-width: 461px) and (orientation:portrait){
   html {
-  	background-image: url("https://iomirea.ml/fox.jpg");
+	  background-position:50% 0%;
+	  background-size: 250% auto;
+	  
+  }
+}
+@media only screen and (orientation:landscape){
+  html {
 	  background-size: cover;
+	  background-position: 0% 25%;
   }
 }
 
-#top{margin-bottom: 25px;}
+#logo{
+	content:url("https://iomirea.ml/logo.png");
+	height: 42px;
+	widht: 42px;
+}
+
+#top{margin-bottom: 30px;}
 
 div{
-	position: absolute;
-    	top: 0;
-    	right: 0;
-    	bottom: 0;
-    	left: 0;
-   	margin: auto;
 	color: #FFFFFF;
 	text-align: center;
 	font-size:17px;
-	align-content: center;
-	height: 225px;
+	height: 250px;
 	width: 250px;
-	margin-left: auto;
-	margin-right: auto;
+	position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+   	margin: auto;
 	background-color:#ffb959;
 	padding: 10px;
 	border-radius: 20px;
@@ -50,6 +60,7 @@ div{
 .uinp{
 	margin-bottom: 3px;
 	margin-top: 3px;
+	width: 90%;
 	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
 	font-size: 15px;
 	border-style:inset;
@@ -58,11 +69,21 @@ div{
 	border-radius: 3px;
 	background-color: #FFB34F;
 	color: #FFFFFF;
-	
 }
 
+
+.link{
+	margin-top:-30px;
+	font-size: 12px;
+	line-height: 1.6;
+	font-family:
+}
+
+
 .button{
-	width: 100px;
+	margin-top: -5px;
+	margin-bottom: 13px;
+	width: 175px;
 	text-align: center;
 	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
 	font-size: 15px;
@@ -79,6 +100,7 @@ div{
 	border-color: #FF942A;
 	background-color: #FF9B39;
 	color: #EDEDED;
+	cursor: pointer;
 }
 
 .button:active{
