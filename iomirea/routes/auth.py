@@ -385,7 +385,7 @@ async def post_reset_password(req: web.Request) -> web.Response:
 
         # create new session
         session = await new_session(req)
-        session["user_id"] = user_id
+        session["user_id"] = int(user_id)
 
         # WARING: monkeypatch
         # TODO: use wrapper to get identity after cookie is saved
