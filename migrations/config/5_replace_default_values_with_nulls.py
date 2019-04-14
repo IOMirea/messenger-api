@@ -44,7 +44,7 @@ class Migration(ConfigMigration):
         if self.config["error-reporter"]["targets"] == ["EMAIL"]:
             self.config["error-reporter"]["targets"] = []
 
-        if self.config["github-webhook-token"] == "":
+        if self.config["github-webhook-token"] in ("", "TOKEN"):
             self.config["github-webhook-token"] = None
 
         postgres_section = self.config["postgresql"]
