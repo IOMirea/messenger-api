@@ -191,7 +191,7 @@ async def post_authorize(req: web.Request) -> web.Response:
         "SETEX",
         f"auth_code:{code}",
         10 * 60,
-        f"{user_id}:{encoded_key}:{' '.join(query['scope'])}",
+        f"{user_id}:{encoded_key}:{query['scope']}",
     )
 
     return web.HTTPFound(query["redirect_uri"] + f"&code={code}")
@@ -261,7 +261,7 @@ async def token(req: web.Request) -> web.Response:
         token = await Token.from_data(
             user_id,
             user_password,
-            query["client_id"],
+            int(query["client_id"]),  # TODO: check client_id
             scope.split(" "),
             req.config_dict["pg_conn"],
         )

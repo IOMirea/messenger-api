@@ -16,11 +16,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+
 import re
-import ssl
+import uuid
 import hmac
 import base64
-import smtplib
 
 from typing import Dict, Any, Union
 
@@ -30,9 +30,10 @@ import aiohttp_jinja2
 from aiohttp_session import new_session, get_session
 from aiohttp import web
 
-from utils import helpers
+from utils import helpers, smtp
 from models import converters, checks
 from errors import ConvertError
+from db.redis import REMOVE_EXPIRED_COOKIES
 from security.security_checks import check_user_password
 
 
@@ -50,12 +51,14 @@ class Email(converters.Converter):
 
 def generate_confirmation_code(email: str, user_id: int) -> str:
     code = hmac.new(
-        email.encode(), msg=str(user_id).encode(), digestmod="sha1"
+        email.encode(), msg=str(user_id).encode(), digestmod="sha512"
     )
-    return base64.urlsafe_b64encode(code.digest()).decode()[:-1]
+    return base64.urlsafe_b64encode(code.digest()).decode()[:-2]
 
 
-def send_confirmation_code(email: str, code: str, req: web.Request) -> None:
+async def send_email_confirmation_code(
+    email: str, code: str, req: web.Request
+) -> None:
     relative_url = (
         req.app.router["confirm_email"].url_for().with_query({"code": code})
     )
@@ -68,13 +71,26 @@ def send_confirmation_code(email: str, code: str, req: web.Request) -> None:
         f"To finish registration, use this url: {url}"
     )
 
-    config = req.config_dict["config"]["email-confirmation"]
+    await smtp.send_message([email], text, req.config_dict["config"])
 
-    with smtplib.SMTP_SSL(
-        config["smtp"]["host"], port=465, context=ssl.create_default_context()
-    ) as smtp:
-        smtp.login(config["smtp"]["login"], config["smtp"]["password"])
-        smtp.sendmail(config["smtp"]["login"], email, text.encode("utf8"))
+
+async def send_password_reset_code(
+    email: str, code: str, user_name: str, req: web.Request
+) -> None:
+    relative_url = (
+        req.app.router["reset_password"].url_for().with_query({"code": code})
+    )
+
+    url = req.url.join(relative_url)
+
+    text = (
+        f"Subject: IOMirea password reset\n\n"
+        f"Password reset requested for account {user_name}\n"
+        f"Use this url to reset your password: {url}\n"
+        f"If you did not request reset, ignore this email"
+    )
+
+    await smtp.send_message([email], text, req.config_dict["config"])
 
 
 routes = web.RouteTableDef()
@@ -153,7 +169,7 @@ async def post_register(req: web.Request) -> web.Response:
         bcrypt.hashpw(query["password"].encode(), bcrypt.gensalt()),
     )
 
-    send_confirmation_code(query["email"], code, req)  # TODO: executor?
+    await send_email_confirmation_code(query["email"], code, req)
 
     helpers.redirect(req, "email_sent")
 
@@ -198,6 +214,14 @@ async def get_email_confirm(
     session = await new_session(req)
     session["user_id"] = user_id
 
+    # WARING: monkeypatch
+    # TODO: use wrapper to get identity after cookie is saved
+    session._identity = uuid.uuid4().hex
+
+    await req.config_dict["rd_conn"].execute(
+        "SADD", f"user_cookies:{user_id}", session.identity
+    )
+
     return {"confirmation_status": "Email successfully confirmed!"}
 
 
@@ -216,7 +240,10 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
 
 @routes.post("/login")
 @helpers.query_params(
-    {"login": converters.String(), "password": converters.String()},
+    {
+        "login": Email(),
+        "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
+    },
     unique=True,
     from_body=True,
 )
@@ -236,14 +263,137 @@ async def post_login(req: web.Request) -> web.Response:
     session = await new_session(req)
     session["user_id"] = record["id"]
 
+    # WARING: monkeypatch
+    # TODO: use wrapper to get identity after cookie is saved
+    session._identity = uuid.uuid4().hex
+
+    await req.config_dict["rd_conn"].execute(
+        "EVAL", REMOVE_EXPIRED_COOKIES, 1, record["id"]
+    )
+
+    await req.config_dict["rd_conn"].execute(
+        "SADD", f"user_cookies:{record['id']}", session.identity
+    )
+
     return web.Response()
 
 
 @routes.get("/logout", name="logout")
 async def logout(req: web.Request) -> web.Response:
     session = await get_session(req)
-    if session.get("user_id") is not None:
-        session.invalidate()
-        return web.HTTPFound(req.app.router["login"].url_for())
+    if session.get("user_id") is None:
+        raise web.HTTPForbidden()
 
-    raise web.HTTPForbidden()
+    await req.config_dict["rd_conn"].execute(
+        "SREM", f"user_cookies:{session['user_id']}", session.identity
+    )
+
+    session.invalidate()
+
+    return web.HTTPFound(req.app.router["login"].url_for())
+
+
+@routes.get("/reset-password")
+@helpers.query_params({"code": converters.String()}, unique=True)
+@aiohttp_jinja2.template("auth/reset_password.html")
+async def reset_password(
+    req: web.Request
+) -> Union[web.Response, Dict[str, Any]]:
+    query = req["query"]
+
+    user_id = await req.config_dict["rd_conn"].execute(
+        "GET", f"password_reset_code:{query['code']}"
+    )
+
+    if user_id is None:
+        return web.HTTPUnauthorized(reason="Bad or expired code")
+
+    return {"code": query["code"]}
+
+
+@routes.post("/reset-password", name="reset_password")
+@helpers.query_params(
+    {
+        "email": Email(default=None),
+        "code": converters.String(default=None),
+        "password": converters.String(
+            checks=[checks.LengthBetween(4, 2048)], default=None
+        ),
+    },
+    unique=True,
+    from_body=True,
+)
+async def post_reset_password(req: web.Request) -> web.Response:
+    query = req["query"]
+
+    if query["email"]:
+        user = await req.config_dict["pg_conn"].fetchrow(
+            "SELECT id, email, name FROM users WHERE email = $1",
+            query["email"],
+        )
+
+        if user is None:
+            raise web.HTTPUnauthorized(reason="Bad email")
+
+        new_code = generate_confirmation_code(user["email"], user["id"])
+
+        await req.config_dict["rd_conn"].execute(
+            "SETEX", f"password_reset_code:{new_code}", 43200, user["id"]
+        )
+
+        await send_password_reset_code(
+            user["email"], new_code, user["name"], req
+        )
+
+        return web.Response()
+    elif query["code"] and query["password"]:
+        # TODO: password checks
+
+        user_id = await req.config_dict["rd_conn"].execute(
+            "GET", f"password_reset_code:{query['code']}"
+        )
+
+        if user_id is None:
+            raise web.HTTPBadRequest(reason="Invalid code")
+
+        await req.config_dict["rd_conn"].execute(
+            "DEL", f"password_reset_code:{query['code']}"
+        )
+
+        # update password
+        password_hash = bcrypt.hashpw(
+            query["password"].encode(), bcrypt.gensalt()
+        )
+
+        await req.config_dict["pg_conn"].fetch(
+            "UPDATE users SET password = $1 WHERE id = $2",
+            password_hash,
+            int(user_id),
+        )
+
+        # clear all user cookies
+        user_cookies = await req.config_dict["rd_conn"].execute(
+            "SMEMBERS", f"user_cookies:{user_id}"
+        )
+
+        await req.config_dict["rd_conn"].execute(
+            "DEL",
+            f"user_cookies:{user_id}",
+            *user_cookies,
+            f"user_cookies:{user_id}",
+        )
+
+        # create new session
+        session = await new_session(req)
+        session["user_id"] = user_id
+
+        # WARING: monkeypatch
+        # TODO: use wrapper to get identity after cookie is saved
+        session._identity = uuid.uuid4().hex
+
+        await req.config_dict["rd_conn"].execute(
+            "SADD", f"user_cookies:{session['user_id']}", session.identity
+        )
+        return web.Response()
+    else:
+        raise web.HTTPBadRequest()

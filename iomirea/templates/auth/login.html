@@ -28,12 +28,39 @@
 		}
 
 		$('#auth_form').on('submit', function(e) {
-			// TODO: let user modify scope
 			xhr.open("POST", window.location.href, true)
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.send("login="+$("#login_field").val()+"&password="+$("#password_field").val())
 		})
 	});
+
+	function ResetPassword() {
+		var email = $("#login_field").val()
+		if (email === "") {
+			alert("Please, enter email")
+			return
+		}
+
+		var xhr = new XMLHttpRequest();
+
+		xhr.onreadystatechange = function() {
+			if (this.readyState !== XMLHttpRequest.DONE) {
+				return
+			}
+			if (this.status === 401) {
+				alert('Invalid email')
+			} else if (this.status === 200) {
+				alert("Password restore link was sent to "+email+"\nYou have 12 hours to use it")
+			} else {
+				alert('Something went terribly wrong. Please, try to refresh page or return back later')
+			}
+		}
+
+		xhr.open("POST", "{{ url('reset_password') }}", true)
+		xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		xhr.send("email="+email)
+	}
+
 	</script>
 </head>
 <body>
@@ -41,16 +68,14 @@
 	<form id="auth_form" onsubmit="return false;" > 
 	  <header>
 		<img id="logo"/>IOMirea</header>
-	  <p id="top">Login<br>
-				<input class="uinp" type="text" id="login_field" name="login">
+			<p id="top">Login<br>
+			<input class="uinp" type="text" id="login_field" name="login">
 			<br>Password<br>
-				<input class="uinp" type="password" id="password_field" name="password">
-	  <p class="link"><a href="#">Forgot your password?</a>
-			</p>
-		</p>
-	  <p><input class="button" type="submit" value="Login"></p>
-		<p class="link">Still not with us? <a href="https://iomirea.ml/register">Register</a>
-	  </p>
+			<input class="uinp" type="password" id="password_field" name="password">
+			<p input="link"><a href="javascript:ResetPassword();">Forgot your password?</a>
+			</p></p>
+		<p><input class="button" type="submit" value="Login"></p>
+		<p class="link">Still not with us? <a href="https://iomirea.ml/register">Register</a></p>
 	</form>
 	</div>
 </body>
