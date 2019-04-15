@@ -8,9 +8,9 @@ header{
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
+ 	width: 100%;
+	height: 100%;
+	margin: 0;
 }
 
 body{
@@ -18,6 +18,17 @@ body{
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size:cover;	
+}
+@media only screen and (orientation:portrait) and (max-device-width : 640px){
+  body {
+	  background-size: 250% 100%;
+  }
+}
+@media only screen and (orientation:landscape) and (max-device-width : 640px){
+  html,body {
+	  height: 179%;
+	  margin: 0;
+	}
 }
 
 #logo{
