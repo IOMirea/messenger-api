@@ -19,12 +19,12 @@ body{
 	background-position: center center;
 	background-size:cover;	
 }
-@media only screen and (orientation:portrait) and (max-device-width : 640px){
+@media only screen and (orientation:portrait) and (max-device-width : 768px){
   body {
 	  background-size: 250% 100%;
   }
 }
-@media only screen and (orientation:landscape) and (max-device-width : 640px){
+@media only screen and (orientation:landscape) and (max-device-width : 768px){
   html,body {
 	  height: 179%;
 	  margin: 0;
