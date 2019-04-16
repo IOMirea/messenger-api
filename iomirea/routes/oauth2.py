@@ -29,7 +29,7 @@ import aiohttp_jinja2
 from aiohttp_session import get_session
 from aiohttp import web
 
-from models import converters, checks
+from models import converters
 from models.access_token import Token
 from utils import helpers
 from constants import EXISTING_SCOPES
@@ -198,25 +198,31 @@ async def post_authorize(req: web.Request) -> web.Response:
 
 
 @routes.post("/token")
-@helpers.query_params(
-    {
-        "grant_type": converters.String(
-            checks=[checks.OneOf(["authorization_code", "refresh_token"])]
-        ),
-        "code": converters.String(default=None),
-        "redirect_uri": converters.String(default=None),
-        "client_id": converters.String(default=None),
-        "client_secret": converters.String(default=None),
-    },
-    unique=True,
-    from_body=True,
-)
 async def token(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req.query
 
-    if query["grant_type"] == "authorization_code":
+    if "grant_type" not in query:
+        return web.json_response(
+            {
+                "error": "invalid_request",
+                "error_description": "The request is missing a required parameter: grant_type",
+            },
+            status=400,
+        )
+
+    elif query["grant_type"] == "authorization_code":
         # TODO: check client_secret
         # TODO: The identity of the authorization code to the client
+
+        for p in ("client_id", "code", "redirect_uri", "client_secret"):
+            if p not in query:
+                return web.json_response(
+                    {
+                        "error": "invalid_request",
+                        "error_description": f"The request is missing a required parameter: {p}",
+                    },
+                    status=400,
+                )
 
         record_key = f"auth_code:{query['code']}"
 
@@ -276,13 +282,21 @@ async def token(req: web.Request) -> web.Response:
             }
         )
     elif query["grant_type"] == "refresh_token":
-        raise web.HTTPNotImplemented(
-            reason="grant_type=refresh_token is not supported yet"
+        return web.json_response(
+            {
+                "error": "unsupported_grant_type",
+                "error_description": "grant_type=refresh_token is not supported yet",
+            },
+            status=400,
         )
 
     else:
-        raise RuntimeError(
-            f"Unknown grant_type received: {query['grant_type']}"
+        return web.json_response(
+            {
+                "error": "unsupported_grant_type",
+                "error_description": "The authorization grant type is not supported by the authorization server.",
+            },
+            status=400,
         )
 
 
