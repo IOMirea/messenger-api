@@ -24,3 +24,7 @@ async def close_redis_pool(app: web.Application) -> None:
 
     app["rd_conn"].close()
     await app["rd_conn"].wait_closed()
+
+
+with open("redis_scripts/remove_expired_cookies.lua") as f:
+    REMOVE_EXPIRED_COOKIES = f.read()

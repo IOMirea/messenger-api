@@ -17,7 +17,7 @@ cffi==1.12.2              # via bcrypt
 chardet==3.0.4            # via aiohttp
 hiredis==1.0.0            # via aioredis
 idna==2.8                 # via yarl
-jinja2==2.10
+jinja2==2.10.1
 markupsafe==1.1.1         # via jinja2
 multidict==4.5.2          # via aiohttp, yarl
 pycparser==2.19           # via cffi
