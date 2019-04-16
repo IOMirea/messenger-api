@@ -35,6 +35,7 @@ from models import converters, checks
 from errors import ConvertError
 from db.redis import REMOVE_EXPIRED_COOKIES
 from security.security_checks import check_user_password
+from constants import ContentType
 
 
 class Email(converters.Converter):
@@ -113,7 +114,7 @@ async def get_register(
         "email": Email(),
         "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
     },
-    from_body=True,
+    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
     json_response=False,
 )
 async def post_register(req: web.Request) -> web.Response:
@@ -245,7 +246,7 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
         "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
     },
     unique=True,
-    from_body=True,
+    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
 )
 async def post_login(req: web.Request) -> web.Response:
     query = req["query"]
@@ -321,7 +322,7 @@ async def reset_password(
         ),
     },
     unique=True,
-    from_body=True,
+    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
 )
 async def post_reset_password(req: web.Request) -> web.Response:
     query = req["query"]

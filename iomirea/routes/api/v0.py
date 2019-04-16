@@ -11,6 +11,7 @@ from utils import helpers
 from utils.db import ensure_existance
 from models import converters, checks
 from security import access
+from constants import ContentType
 
 
 routes = web.RouteTableDef()
@@ -77,9 +78,9 @@ async def get_messages(req: web.Request) -> web.Response:
             strip=True, checks=[checks.LengthBetween(1, 2048)]
         )
     },
-    from_body=True,
+    content_types=[ContentType.JSON, ContentType.FORM_DATA],
 )
-async def send_message(req: web.Request) -> web.Response:
+async def create_message(req: web.Request) -> web.Response:
     snowflake = req.config_dict["sf_gen"].gen_id()
 
     await req.config_dict["pg_conn"].fetch(
@@ -111,6 +112,41 @@ async def get_pins(req: web.Request) -> web.Response:
     )
 
     return web.json_response([MESSAGE.to_json(record) for record in records])
+
+
+@routes.post(endpoints_public.CHANNELS)
+@helpers.parse_token
+@helpers.query_params(
+    {
+        "name": converters.String(
+            strip=True, checks=[checks.LengthBetween(1, 128)]
+        ),
+        "recipients": converters.List(converters.ID(), max_len=10, default=[]),
+    },
+    content_types=[ContentType.JSON, ContentType.FORM_DATA],
+)
+async def create_channel(req: web.Request) -> web.Response:
+    query = req["query"]
+
+    recipients = set(query["recipients"] + [req["access_token"].user_id])
+
+    new_id = req.config_dict["sf_gen"].gen_id()
+
+    channel = await req.config_dict["pg_conn"].fetchrow(
+        f"INSERT INTO channels (id, name, user_ids) VALUES ($1, $2, $3) RETURNING {CHANNEL}",
+        new_id,
+        query["name"],
+        recipients,
+    )
+
+    await req.config_dict["pg_conn"].fetch(
+        "UPDATE users SET channel_ids = array_append(channel_ids, $1) WHERE id = ANY($2) AND NOT ($3 = ANY(channel_ids))",
+        new_id,
+        recipients,
+        new_id,
+    )
+
+    return web.json_response(CHANNEL.to_json(channel))
 
 
 @routes.get(endpoints_public.CHANNEL)
@@ -188,7 +224,7 @@ async def get_file(req: web.Request) -> web.Response:
         ),
         "automatic": converters.Boolean(),
     },
-    from_body=True,
+    content_types=[ContentType.JSON],
 )
 async def post_bugreport(req: web.Request) -> web.Response:
     query = req["query"]

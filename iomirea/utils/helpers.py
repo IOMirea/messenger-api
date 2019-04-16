@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
+import json
+
 from typing import (
     Iterable,
     Optional,
@@ -26,10 +28,12 @@ from typing import (
     Callable,
     Awaitable,
     NoReturn,
+    List,
 )
 
 from aiohttp import web
 
+from constants import ContentType
 from log import server_log
 from models import converters
 from models.access_token import Token
@@ -50,19 +54,50 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
     return None
 
 
+# TODO: separate query_params and body_params
+# TODO: get json from payload_json in ContentType.FORM_DATA
 def query_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
-    from_body: bool = False,
+    content_types: Optional[List[ContentType]] = None,
     json_response: bool = True,
 ) -> _Decorator:
     def deco(endpoint: _Handler) -> _Handler:
         async def wrapper(req: web.Request) -> web.StreamResponse:
-            # TODO: check encoding
+            if content_types is not None:
+                content_type_matches = False
+                for content_type in content_types:
+                    if ContentType(req.content_type) is content_type:
+                        content_type_matches = True
+                        break
 
-            if from_body:
-                query = await req.post()
-                query_name = "body"  # used in error messages
+                if not content_type_matches:
+                    return web.json_response(
+                        {
+                            "message": f"Bad content type. Expected: {[c.value for c in content_types]}"
+                        },
+                        status=400,
+                    )
+
+                query_name = "body"
+
+                if content_type == ContentType.JSON:
+                    try:
+                        query = await req.json()
+                    except json.JSONDecodeError as e:
+                        return web.json_response(
+                            {"message": f"Error parsing json from body: {e}"},
+                            status=400,
+                        )
+                elif content_type in (
+                    ContentType.URLENCODED,
+                    ContentType.FORM_DATA,
+                ):
+                    query = await req.post()
+                else:
+                    server_log.debug(
+                        f"Unknown content type used for query_params: {content_type}"
+                    )
             else:
                 query = req.query
                 query_name = "query"  # used in error messages
