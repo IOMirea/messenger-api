@@ -136,7 +136,7 @@ def body_params(
         async def wrapper(req: web.Request) -> web.StreamResponse:
             content_type_matches = False
             for content_type in content_types:
-                if ContentType(req.content_type) is content_type:
+                if content_type in set(item.value for item in ContentType):
                     content_type_matches = True
                     break
 
