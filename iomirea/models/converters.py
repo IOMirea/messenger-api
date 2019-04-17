@@ -45,7 +45,7 @@ OptionalInputType = typing.Optional[InputType]
 
 class Converter:
     ERROR_TEMPLATE = "Failed to convert parameter to {type}: {error.__class__.__name__}({error})"
-    SUPPORTED_TYPES: typing.Tuple[typing.Any, ...] = (str, int, float)
+    SUPPORTED_TYPES: typing.Tuple[typing.Any, ...] = (str, int, float, bool)
 
     def __init__(
         self,
@@ -59,9 +59,6 @@ class Converter:
     async def convert(
         self, value: OptionalInputType, app: aiohttp.web.Application
     ) -> typing.Any:
-        if value is None:
-            return None
-
         if type(value) not in self.SUPPORTED_TYPES:
             raise ConvertError(
                 self.error(
@@ -160,6 +157,10 @@ class Boolean(Converter):
     async def _convert(
         self, value: InputType, app: aiohttp.web.Application
     ) -> bool:
+
+        if type(value) is not str:
+            return bool(value)
+
         lower_value = value.lower()
 
         if lower_value in self.POSITIVE:
