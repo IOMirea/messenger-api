@@ -249,7 +249,7 @@ async def token(req: web.Request) -> web.Response:
         ).hexdigest()
 
         if not hmac.compare_digest(calculated_code, query["code"]):
-            raise web.json_response(
+            return web.json_response(
                 {
                     "error": " unauthorized_client",
                     "error_description": "Bad authorization code passed",

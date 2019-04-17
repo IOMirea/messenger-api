@@ -54,53 +54,15 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
     return None
 
 
-# TODO: separate query_params and body_params
-# TODO: get json from payload_json in ContentType.FORM_DATA
+# TODO: remove duplicated code
 def query_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
-    content_types: Optional[List[ContentType]] = None,
     json_response: bool = True,
 ) -> _Decorator:
     def deco(endpoint: _Handler) -> _Handler:
         async def wrapper(req: web.Request) -> web.StreamResponse:
-            if content_types is not None:
-                content_type_matches = False
-                for content_type in content_types:
-                    if ContentType(req.content_type) is content_type:
-                        content_type_matches = True
-                        break
-
-                if not content_type_matches:
-                    return web.json_response(
-                        {
-                            "message": f"Bad content type. Expected: {[c.value for c in content_types]}"
-                        },
-                        status=400,
-                    )
-
-                query_name = "body"
-
-                if content_type == ContentType.JSON:
-                    try:
-                        query = await req.json()
-                    except json.JSONDecodeError as e:
-                        return web.json_response(
-                            {"message": f"Error parsing json from body: {e}"},
-                            status=400,
-                        )
-                elif content_type in (
-                    ContentType.URLENCODED,
-                    ContentType.FORM_DATA,
-                ):
-                    query = await req.post()
-                else:
-                    server_log.debug(
-                        f"Unknown content type used for query_params: {content_type}"
-                    )
-            else:
-                query = req.query
-                query_name = "query"  # used in error messages
+            query = req.query
 
             if unique:
                 repeating = get_repeating(query.keys())
@@ -108,11 +70,11 @@ def query_params(
                 if repeating is not None:
                     if json_response:
                         return web.json_response(
-                            {repeating: f"Repeats in {query_name}"}, status=400
+                            {repeating: "Repeats in query"}, status=400
                         )
 
                     raise web.HTTPBadRequest(
-                        reason=f"{repeating}: Repeats in {query_name}"
+                        reason=f"{repeating}: Repeats in query"
                     )
 
             req["query"] = req.get("query", {})
@@ -126,16 +88,116 @@ def query_params(
                     except KeyError:  # no default value
                         if json_response:
                             return web.json_response(
-                                {name: f"Missing from {query_name}"},
-                                status=400,
+                                {name: "Missing from query"}, status=400
                             )
 
                         raise web.HTTPBadRequest(
-                            reason=f"{name}: Missing from {query_name}"
+                            reason=f"{name}: Missing from query"
                         )
-
                 try:
                     req["query"][name] = await converter.convert(
+                        query[name], req.app
+                    )
+                except ConvertError as e:
+                    server_log.debug(f"Parameter {name}: {e}")
+
+                    if e.overwrite_response:
+                        error = str(e)
+                    else:
+                        error = f"Should be of type {converter}"
+
+                    if json_response:
+                        return web.json_response({name: error}, status=400)
+
+                    raise web.HTTPBadRequest(reason=f"{name}: {error}")
+                except CheckError as e:
+                    server_log.debug(f"Parameter {name}: check failed: {e}")
+
+                    if json_response:
+                        return web.json_response({name: str(e)}, status=400)
+
+                    raise web.HTTPBadRequest(reason=f"{name}: {e}")
+
+            return await endpoint(req)
+
+        return wrapper
+
+    return deco
+
+
+# TODO: get json from payload_json in ContentType.FORM_DATA
+def body_params(
+    params: Dict[str, converters.Converter],
+    unique: bool = False,
+    content_types: List[ContentType] = [ContentType.JSON],
+    json_response: bool = True,
+) -> _Decorator:
+    def deco(endpoint: _Handler) -> _Handler:
+        async def wrapper(req: web.Request) -> web.StreamResponse:
+            content_type_matches = False
+            for content_type in content_types:
+                if ContentType(req.content_type) is content_type:
+                    content_type_matches = True
+                    break
+
+            if not content_type_matches:
+                return web.json_response(
+                    {
+                        "message": f"Bad content type. Expected: {[c.value for c in content_types]}"
+                    },
+                    status=400,
+                )
+
+            if content_type == ContentType.JSON:
+                try:
+                    query = await req.json()
+                except json.JSONDecodeError as e:
+                    return web.json_response(
+                        {"message": f"Error parsing json from body: {e}"},
+                        status=400,
+                    )
+            elif content_type in (
+                ContentType.URLENCODED,
+                ContentType.FORM_DATA,
+            ):
+                query = await req.post()
+            else:
+                server_log.debug(
+                    f"body_params: unknown content type: {content_type}"
+                )
+
+            if unique:
+                repeating = get_repeating(query.keys())
+
+                if repeating is not None:
+                    if json_response:
+                        return web.json_response(
+                            {repeating: "Repeats in body"}, status=400
+                        )
+
+                    raise web.HTTPBadRequest(
+                        reason=f"{repeating}: Repeats in body"
+                    )
+
+            req["body"] = req.get("body", {})
+
+            for name, converter in params.items():
+                if name not in query:
+                    try:
+                        # not converting default value to type, be careful
+                        req["body"][name] = converter.get_default()
+                        continue
+                    except KeyError:  # no default value
+                        if json_response:
+                            return web.json_response(
+                                {name: "Missing from body"}, status=400
+                            )
+
+                        raise web.HTTPBadRequest(
+                            reason=f"{name}: Missing from body"
+                        )
+                try:
+                    req["body"][name] = await converter.convert(
                         query[name], req.app
                     )
                 except ConvertError as e:

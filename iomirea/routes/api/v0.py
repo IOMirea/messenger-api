@@ -1,3 +1,22 @@
+"""
+IOMirea-server - A server for IOMirea messenger
+Copyright (C) 2019  Eugene Ershov
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+
 import json
 
 from typing import Dict, List
@@ -11,7 +30,6 @@ from utils import helpers
 from utils.db import ensure_existance
 from models import converters, checks
 from security import access
-from constants import ContentType
 
 
 routes = web.RouteTableDef()
@@ -72,13 +90,14 @@ async def get_messages(req: web.Request) -> web.Response:
 @routes.post(endpoints_public.MESSAGES)
 @helpers.parse_token
 @access.channel
-@helpers.query_params(
+@helpers.body_params(
     {
         "content": converters.String(
             strip=True, checks=[checks.LengthBetween(1, 2048)]
         )
     },
-    content_types=[ContentType.JSON, ContentType.FORM_DATA],
+    # TODO: support ContentType.FORM_DATA for file uploads
+    # content_types=[ContentType.JSON, ContentType.FORM_DATA],
 )
 async def create_message(req: web.Request) -> web.Response:
     snowflake = req.config_dict["sf_gen"].gen_id()
@@ -88,7 +107,7 @@ async def create_message(req: web.Request) -> web.Response:
         snowflake,
         req["access_token"].user_id,
         req["match_info"]["channel_id"],
-        req["query"]["content"],
+        req["body"]["content"],
     )
 
     message = await req.config_dict["pg_conn"].fetchrow(
@@ -116,17 +135,16 @@ async def get_pins(req: web.Request) -> web.Response:
 
 @routes.post(endpoints_public.CHANNELS)
 @helpers.parse_token
-@helpers.query_params(
+@helpers.body_params(
     {
         "name": converters.String(
             strip=True, checks=[checks.LengthBetween(1, 128)]
         ),
         "recipients": converters.List(converters.ID(), max_len=10, default=[]),
-    },
-    content_types=[ContentType.JSON, ContentType.FORM_DATA],
+    }
 )
 async def create_channel(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req["body"]
 
     recipients = set(query["recipients"] + [req["access_token"].user_id])
 
@@ -215,7 +233,7 @@ async def get_file(req: web.Request) -> web.Response:
 
 @routes.post(endpoints_public.BUGREPORTS)
 @access.create_reports
-@helpers.query_params(
+@helpers.body_params(
     {
         "user_id": converters.ID(default=None),
         "body": converters.String(checks=[checks.LengthBetween(0, 4096)]),
@@ -223,11 +241,10 @@ async def get_file(req: web.Request) -> web.Response:
             checks=[checks.LengthBetween(0, 4096)]
         ),
         "automatic": converters.Boolean(),
-    },
-    content_types=[ContentType.JSON],
+    }
 )
 async def post_bugreport(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req["body"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
         f"INSERT INTO bugreports (user_id, report_body, device_info, automatic) VALUES ($1, $2, $3, $4) RETURNING {BUGREPORT}",
@@ -289,6 +306,11 @@ async def get_public_endpoints(req: web.Request) -> web.Response:
         method = route.method
         if method == "HEAD":
             continue
+
+        if route.resource is None:
+            raise RuntimeError(
+                f"No canonical url for resource {route.resource!r}"
+            )
 
         path = route.resource.canonical
 

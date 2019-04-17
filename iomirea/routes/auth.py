@@ -106,7 +106,7 @@ async def get_register(
 
 
 @routes.post("/register")
-@helpers.query_params(
+@helpers.body_params(
     {
         "nickname": converters.String(
             strip=True, checks=[checks.LengthBetween(1, 128)]
@@ -118,7 +118,7 @@ async def get_register(
     json_response=False,
 )
 async def post_register(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req["body"]
 
     user = await req.config_dict["pg_conn"].fetchrow(
         "SELECT id, name, email, verified FROM users WHERE name = $1 OR email = $2",
@@ -240,7 +240,7 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
 
 
 @routes.post("/login")
-@helpers.query_params(
+@helpers.body_params(
     {
         "login": Email(),
         "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
@@ -249,7 +249,7 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
     content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
 )
 async def post_login(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req["body"]
 
     record = await req.config_dict["pg_conn"].fetchrow(
         "SELECT id, password FROM users WHERE email = $1", query["login"]
@@ -313,7 +313,7 @@ async def reset_password(
 
 
 @routes.post("/reset-password", name="reset_password")
-@helpers.query_params(
+@helpers.body_params(
     {
         "email": Email(default=None),
         "code": converters.String(default=None),
@@ -325,7 +325,7 @@ async def reset_password(
     content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
 )
 async def post_reset_password(req: web.Request) -> web.Response:
-    query = req["query"]
+    query = req["body"]
 
     if query["email"]:
         user = await req.config_dict["pg_conn"].fetchrow(
