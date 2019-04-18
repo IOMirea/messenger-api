@@ -45,7 +45,7 @@ class Email(converters.Converter):
         value = value.lower()
 
         if self.EMAIL_REGEX.fullmatch(value) is None:
-            raise ConvertError("Bad email pattern", overwrite_response=True)
+            raise ConvertError("Bad email pattern")
 
         return value
 

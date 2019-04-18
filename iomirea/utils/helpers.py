@@ -37,7 +37,6 @@ from constants import ContentType
 from log import server_log
 from models import converters
 from models.access_token import Token
-from errors import ConvertError, CheckError
 
 
 _Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
@@ -54,7 +53,6 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
     return None
 
 
-# TODO: remove duplicated code
 def query_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
@@ -79,44 +77,14 @@ def query_params(
 
             req["query"] = req.get("query", {})
 
-            for name, converter in params.items():
-                if name not in query:
-                    try:
-                        # not converting default value to type, be careful
-                        req["query"][name] = converter.get_default()
-                        continue
-                    except KeyError:  # no default value
-                        if json_response:
-                            return web.json_response(
-                                {name: "Missing from query"}, status=400
-                            )
-
-                        raise web.HTTPBadRequest(
-                            reason=f"{name}: Missing from query"
-                        )
-                try:
-                    req["query"][name] = await converter.convert(
-                        query[name], req.app
+            try:
+                req["query"].update(
+                    **await converters.convert_map(
+                        params, query, req.app, location="query"
                     )
-                except ConvertError as e:
-                    server_log.debug(f"Parameter {name}: {e}")
-
-                    if e.overwrite_response:
-                        error = str(e)
-                    else:
-                        error = f"Should be of type {converter}"
-
-                    if json_response:
-                        return web.json_response({name: error}, status=400)
-
-                    raise web.HTTPBadRequest(reason=f"{name}: {error}")
-                except CheckError as e:
-                    server_log.debug(f"Parameter {name}: check failed: {e}")
-
-                    if json_response:
-                        return web.json_response({name: str(e)}, status=400)
-
-                    raise web.HTTPBadRequest(reason=f"{name}: {e}")
+                )
+            except converters.ConvertError as e:
+                return e.to_bad_request(json_response)
 
             return await endpoint(req)
 
@@ -125,7 +93,6 @@ def query_params(
     return deco
 
 
-# TODO: get json from payload_json in ContentType.FORM_DATA
 def body_params(
     params: Dict[str, converters.Converter],
     unique: bool = False,
@@ -181,44 +148,12 @@ def body_params(
 
             req["body"] = req.get("body", {})
 
-            for name, converter in params.items():
-                if name not in query:
-                    try:
-                        # not converting default value to type, be careful
-                        req["body"][name] = converter.get_default()
-                        continue
-                    except KeyError:  # no default value
-                        if json_response:
-                            return web.json_response(
-                                {name: "Missing from body"}, status=400
-                            )
-
-                        raise web.HTTPBadRequest(
-                            reason=f"{name}: Missing from body"
-                        )
-                try:
-                    req["body"][name] = await converter.convert(
-                        query[name], req.app
-                    )
-                except ConvertError as e:
-                    server_log.debug(f"Parameter {name}: {e}")
-
-                    if e.overwrite_response:
-                        error = str(e)
-                    else:
-                        error = f"Should be of type {converter}"
-
-                    if json_response:
-                        return web.json_response({name: error}, status=400)
-
-                    raise web.HTTPBadRequest(reason=f"{name}: {error}")
-                except CheckError as e:
-                    server_log.debug(f"Parameter {name}: check failed: {e}")
-
-                    if json_response:
-                        return web.json_response({name: str(e)}, status=400)
-
-                    raise web.HTTPBadRequest(reason=f"{name}: {e}")
+            try:
+                req["body"].update(
+                    **await converters.convert_map(params, query, req.app)
+                )
+            except converters.ConvertError as e:
+                return e.to_bad_request(json_response)
 
             return await endpoint(req)
 

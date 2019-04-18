@@ -17,12 +17,36 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-class ConvertError(ValueError):
-    def __init__(self, message: str, overwrite_response: bool = False):
+from typing import Optional
+
+from aiohttp import web
+
+
+class ConvertError(Exception):
+    def __init__(self, message: str, parameter: Optional[str] = None):
         super().__init__(message)
 
-        self.overwrite_response = overwrite_response
+        self._parameter = parameter
+
+    def update_parameter(self, name: str) -> None:
+        self._parameter = (
+            name if self._parameter is None else f"{name}: {self._parameter}"
+        )
+
+    @property
+    def parameter(self) -> Optional[str]:
+        return self._parameter
+
+    def to_bad_request(self, json: bool = True) -> web.Response:
+        if json:
+            return web.json_response({self._parameter: str(self)}, status=400)
+        else:
+            return web.HTTPBadRequest(reason=f"{self._parameter}: {self}")
 
 
-class CheckError(ValueError):
+class BadArgument(ConvertError):
+    pass
+
+
+class CheckError(ConvertError):
     pass

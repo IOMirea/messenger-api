@@ -24,7 +24,8 @@ import typing
 import aiohttp
 
 from models import checks
-from errors import ConvertError, CheckError
+from errors import ConvertError, BadArgument, CheckError
+from log import server_log
 
 
 class _Default:
@@ -39,7 +40,7 @@ DEFAULT = _Default()
 
 InputType = (
     typing.Any
-)  # typing.Union[str, int, float, typing.List[InputType], typing.Dict[str, InputType]]
+)  # typing.Union[str, int, float, bool, typing.List[InputType], typing.Dict[str, InputType]]
 OptionalInputType = typing.Optional[InputType]
 
 
@@ -60,7 +61,7 @@ class Converter:
         self, value: OptionalInputType, app: aiohttp.web.Application
     ) -> typing.Any:
         if type(value) not in self.SUPPORTED_TYPES:
-            raise ConvertError(
+            raise BadArgument(
                 self.error(
                     value, ValueError(f"Invalid input type: {type(value)}")
                 )
@@ -70,8 +71,8 @@ class Converter:
             result = await self._convert(value, app)
         except ConvertError:
             raise
-        except Exception as e:
-            raise ConvertError(self.error(value, e))
+        except ValueError as e:
+            raise BadArgument(self.error(value, e))
 
         for check in self._checks:
             if not await check.check(result, app):
@@ -104,6 +105,49 @@ class Converter:
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} checks={self._checks} default={self._default}>"
+
+
+async def convert_map(
+    converters: typing.Dict[str, Converter],
+    query: typing.Mapping[str, InputType],
+    app: aiohttp.web.Application,
+    location: str = "body",
+) -> typing.Dict[str, typing.Any]:
+    result = {}
+
+    for name, converter in converters.items():
+        if name not in query:
+            try:
+                # not converting default value to type, be careful
+                result[name] = converter.get_default()
+                continue
+            except KeyError:  # no default value
+                server_log.debug(f"Parameter {name}: missing")
+
+                raise ConvertError(f"Missing from {location}", name)
+        try:
+            result[name] = await converter.convert(query[name], app)
+        except ConvertError as e:
+            e.update_parameter(name)
+
+            if type(e) is BadArgument:
+                server_log.debug(
+                    f"Bad argument for parameter {e.parameter}: {e}"
+                )
+
+                raise ConvertError(
+                    f"Should be of type {converter} in {location}", e.parameter
+                )
+            elif type(e) is CheckError:
+                server_log.debug(f"Parameter {name}: check failed: {e}")
+
+                raise ConvertError(
+                    f"Check failed in {location}: {e}", e.parameter
+                )
+            else:
+                raise ConvertError(str(e), e.parameter)
+
+    return result
 
 
 class Integer(Converter):
@@ -199,3 +243,21 @@ class List(Converter):
         max_len_argument = f":{self._max_len}" if self._max_len != -1 else ""
 
         return f"{self.__class__.__name__.lower()}[{self._converter}{max_len_argument}]"
+
+
+class Map(Converter):
+    SUPPORTED_TYPES = (dict,)
+
+    def __init__(
+        self, converters: typing.Dict[str, Converter], **kwargs: typing.Any
+    ):
+        super().__init__(**kwargs)
+
+        self._converters = converters
+
+    async def _convert(
+        self, value: InputType, app: aiohttp.web.Application
+    ) -> typing.Dict[str, typing.Any]:
+        # TODO: json.loads for str type
+
+        return await convert_map(self._converters, value, app)
