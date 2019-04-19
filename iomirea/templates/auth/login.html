@@ -18,16 +18,18 @@
 			if (this.readyState !== XMLHttpRequest.DONE) {
 				return
 			}
-			if (this.status === 401) {
-				alert('Wrong login or password')
+			if (this.status == 400) {
+				alert("Bad login or password")
+			} else if (this.status === 401) {
+				alert("Wrong login or password")
 			} else if (this.status === 200) {
 				window.location.assign(redirect)
 			} else {
-				alert('Something went terribly wrong. Please, try to refresh page or return back later')
+				alert("Something went terribly wrong. Please, try to refresh page or return back later")
 			}
 		}
 
-		$('#auth_form').on('submit', function(e) {
+		$("#auth_form").on("submit", function(e) {
 			xhr.open("POST", window.location.href, true)
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.send("login="+$("#login_field").val()+"&password="+$("#password_field").val())

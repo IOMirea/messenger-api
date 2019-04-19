@@ -15,7 +15,15 @@
 		<table width="381" height="94" border="1" align="center">
 			<tbody>
 				<tr>
-					<td bgcolor="#5440D3" style="color: #FFFFFF"> {{ confirmation_status }}</td>
+					<td bgcolor="#5440D3" style="color: #FFFFFF">
+						{% if confirmed %}
+							Email successfully confirmed!
+						{% else %}
+							Wrong confirmation code!<br><br>
+							Please, let us know if you have registration problems.<br>
+							Notice: email confirmation codes are valid for 24 hours
+						{% endif %}
+					</td>
 				</tr>
 			</tbody>
 		</table>

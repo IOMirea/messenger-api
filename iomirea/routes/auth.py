@@ -19,8 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 import uuid
-import hmac
-import base64
 
 from typing import Dict, Any, Union
 
@@ -32,6 +30,7 @@ from aiohttp import web
 
 from utils import helpers, smtp
 from models import converters, checks
+from models.confirmation_codes import EmailConfirmationCode, PasswordResetCode
 from errors import ConvertError
 from db.redis import REMOVE_EXPIRED_COOKIES
 from security.security_checks import check_user_password
@@ -48,13 +47,6 @@ class Email(converters.Converter):
             raise ConvertError("Bad email pattern")
 
         return value
-
-
-def generate_confirmation_code(email: str, user_id: int) -> str:
-    code = hmac.new(
-        email.encode(), msg=str(user_id).encode(), digestmod="sha512"
-    )
-    return base64.urlsafe_b64encode(code.digest()).decode()[:-2]
 
 
 async def send_email_confirmation_code(
@@ -105,6 +97,7 @@ async def get_register(
     return {}
 
 
+# TODO: propper password and login checks
 @routes.post("/register")
 @helpers.body_params(
     {
@@ -114,17 +107,20 @@ async def get_register(
         "email": Email(),
         "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
     },
-    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
+    content_types=[ContentType.URLENCODED],
     json_response=False,
 )
 async def post_register(req: web.Request) -> web.Response:
     query = req["body"]
 
+    # TODO: handle case with 2 matches
     user = await req.config_dict["pg_conn"].fetchrow(
         "SELECT id, name, email, verified FROM users WHERE name = $1 OR email = $2",
         query["nickname"],
         query["email"],
     )
+
+    new_user_id = req.config_dict["sf_gen"].gen_id()
 
     if user is not None:
         if user["verified"]:
@@ -135,14 +131,10 @@ async def post_register(req: web.Request) -> web.Response:
             elif user["email"] == query["email"]:
                 raise web.HTTPBadRequest(reason="Email is already registered")
 
-        code = generate_confirmation_code(user["email"], user["id"])
-
         if (
-            await req.config_dict["rd_conn"].execute(
-                "GET", f"email_confirm_code:{code}"
-            )
-            is None
-        ):  # user confirmation code expired
+            (new_user_id - user["id"]) >> 22
+        ) > EmailConfirmationCode.life_time():
+            # user not verified for duration > code life time
             await req.config_dict["pg_conn"].fetch(
                 "DELETE FROM users WHERE id = $1", user["id"]
             )
@@ -151,14 +143,8 @@ async def post_register(req: web.Request) -> web.Response:
                 reason="User with this name or email is in registration process"
             )
 
-    # TODO: propper password and login checks
-
-    new_user_id = req.config_dict["sf_gen"].gen_id()
-
-    code = generate_confirmation_code(query["email"], new_user_id)
-
-    await req.config_dict["rd_conn"].execute(
-        "SETEX", f"email_confirm_code:{code}", 86400, new_user_id
+    code = await EmailConfirmationCode.from_data(
+        new_user_id, req.config_dict["rd_conn"]
     )
 
     await req.config_dict["pg_conn"].fetch(
@@ -170,7 +156,7 @@ async def post_register(req: web.Request) -> web.Response:
         bcrypt.hashpw(query["password"].encode(), bcrypt.gensalt()),
     )
 
-    await send_email_confirmation_code(query["email"], code, req)
+    await send_email_confirmation_code(query["email"], str(code), req)
 
     helpers.redirect(req, "email_sent")
 
@@ -189,41 +175,32 @@ async def get_email_send(
 async def get_email_confirm(
     req: web.Request
 ) -> Union[web.Response, Dict[str, Any]]:
-    user_id = await req.config_dict["rd_conn"].execute(
-        "GET", f"email_confirm_code:{req['query']['code']}"
-    )
-    await req.config_dict["rd_conn"].execute(
-        "DEL", f"email_confirm_code:{req['query']['code']}"
-    )
+    try:
+        code = await EmailConfirmationCode.from_string(
+            req["query"]["code"], req.config_dict["rd_conn"]
+        )
+    except web.HTTPUnauthorized:
+        return {"confirmed": False}
 
-    if user_id is None:
-        return {
-            "confirmation_status": (
-                "Wrong confirmation code!\n\n"
-                "Please, let us know if you have registration problems.\n"
-                "Notice: email confirmation codes are valid for 24 hours"
-            )
-        }
-
-    user_id = int(user_id.decode())
+    await code.delete()
 
     # TODO: check code / handle wrong user_id errors?
     await req.config_dict["pg_conn"].fetch(
-        "UPDATE users SET verified = true WHERE id = $1", user_id
+        "UPDATE users SET verified = true WHERE id = $1", code.user_id
     )
 
     session = await new_session(req)
-    session["user_id"] = user_id
+    session["user_id"] = code.user_id
 
     # WARING: monkeypatch
     # TODO: use wrapper to get identity after cookie is saved
     session._identity = uuid.uuid4().hex
 
     await req.config_dict["rd_conn"].execute(
-        "SADD", f"user_cookies:{user_id}", session.identity
+        "SADD", f"user_cookies:{code.user_id}", session.identity
     )
 
-    return {"confirmation_status": "Email successfully confirmed!"}
+    return {"confirmed": True}
 
 
 @routes.get("/login", name="login")
@@ -246,7 +223,7 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
         "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
     },
     unique=True,
-    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
+    content_types=[ContentType.URLENCODED],
 )
 async def post_login(req: web.Request) -> web.Response:
     query = req["body"]
@@ -322,7 +299,7 @@ async def reset_password(
         ),
     },
     unique=True,
-    content_types=[ContentType.FORM_DATA, ContentType.URLENCODED],
+    content_types=[ContentType.URLENCODED],
 )
 async def post_reset_password(req: web.Request) -> web.Response:
     query = req["body"]
@@ -336,30 +313,23 @@ async def post_reset_password(req: web.Request) -> web.Response:
         if user is None:
             raise web.HTTPUnauthorized(reason="Bad email")
 
-        new_code = generate_confirmation_code(user["email"], user["id"])
-
-        await req.config_dict["rd_conn"].execute(
-            "SETEX", f"password_reset_code:{new_code}", 43200, user["id"]
+        code = await PasswordResetCode.from_data(
+            user["id"], req.config_dict["rd_conn"]
         )
 
         await send_password_reset_code(
-            user["email"], new_code, user["name"], req
+            user["email"], str(code), user["name"], req
         )
 
         return web.Response()
     elif query["code"] and query["password"]:
         # TODO: password checks
 
-        user_id = await req.config_dict["rd_conn"].execute(
-            "GET", f"password_reset_code:{query['code']}"
+        code = await PasswordResetCode.from_string(
+            query["code"], req.config_dict["rd_conn"]
         )
 
-        if user_id is None:
-            raise web.HTTPBadRequest(reason="Invalid code")
-
-        await req.config_dict["rd_conn"].execute(
-            "DEL", f"password_reset_code:{query['code']}"
-        )
+        await code.delete()
 
         # update password
         password_hash = bcrypt.hashpw(
@@ -369,24 +339,24 @@ async def post_reset_password(req: web.Request) -> web.Response:
         await req.config_dict["pg_conn"].fetch(
             "UPDATE users SET password = $1 WHERE id = $2",
             password_hash,
-            int(user_id),
+            code.user_id,
         )
 
         # clear all user cookies
         user_cookies = await req.config_dict["rd_conn"].execute(
-            "SMEMBERS", f"user_cookies:{user_id}"
+            "SMEMBERS", f"user_cookies:{code.user_id}"
         )
 
         await req.config_dict["rd_conn"].execute(
             "DEL",
-            f"user_cookies:{user_id}",
+            f"user_cookies:{code.user_id}",
             *user_cookies,
-            f"user_cookies:{user_id}",
+            f"user_cookies:{code.user_id}",
         )
 
         # create new session
         session = await new_session(req)
-        session["user_id"] = int(user_id)
+        session["user_id"] = code.user_id
 
         # WARING: monkeypatch
         # TODO: use wrapper to get identity after cookie is saved
