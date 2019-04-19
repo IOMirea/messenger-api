@@ -23,7 +23,7 @@ import smtplib
 
 from typing import List, Optional
 
-from config import Config
+from models.config import Config
 from log import server_log
 
 
