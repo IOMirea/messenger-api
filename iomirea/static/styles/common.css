@@ -2,125 +2,39 @@
 /* CSS Document */
 
 header{
-	font-size:20px;
-	color:#6A5ACD;
-	text-align: left;
+    font-size:20px;
+    color:#6A5ACD;
+    text-align: left;
 }
 
 html, body {
- 	width: 100%;
-	height: 100%;
-	margin: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
 }
 
 body{
-	background-image: url("https://iomirea.ml/fox.jpg");
-	background-repeat: no-repeat;
-	background-position: center center;
-	background-size:cover;	
-}
-@media only screen and (orientation:portrait) and (max-device-width : 768px){
-  body {
-	  background-size: 250% 100%;
-  }
-}
-@media only screen and (orientation:landscape) and (max-device-width : 768px){
-  html,body {
-	  height: 179%;
-	  margin: 0;
-	}
+	height: inherit;
+	width: inherit;
+    background-image: url("https://iomirea.ml/fox.jpg");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size:cover;
 }
 
 #logo{
-	content:url("https://iomirea.ml/logo.png");
-	height: 42px;
-	widht: 42px;
+    content:url("https://iomirea.ml/logo.png");
+    height: 42px;
+    widht: 42px;
 }
-
-#top{margin-bottom: 30px;}
-
 
 div{
 	position: absolute;
  	top: 50%;
   	left: 50%;
   	transform: translate(-50%, -50%);
-	color: #FFFFFF;
-	text-align: center;
-	font-size:17px;
-	width: 250px;
-	background-color:#ffb959;
-	padding: 10px;
-	border-radius: 20px;
-	box-shadow:0px 0px 4px 1px #975B0B;
-	
-}
-
-
-
-.uinp{
-	margin-bottom: 3px;
-	margin-top: 3px;
-	width: 90%;
-	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
-	font-size: 15px;
-	border-style:inset;
-	border-width: 2px;
-	border-color: #FFAE42;
-	border-radius: 3px;
-	background-color: #FFB34F;
-	color: #FFFFFF;
-}
-
-
-.link{
-	margin-top:-30px;
-	font-size: 12px;
-	line-height: 1.6;
-	text-decoration: none;
-}
-
-#linkt{
-	margin-top:-30px;
-	font-size: 12px;
-	line-height: 1.6;
-}
-
-.link:hover{
-	text-decoration:underline;
-}
-
-.link:visited{
-	color: #0000EE
-}
-
-.button{
-	margin-top: 15px;
-	margin-bottom: 3px;
-	width: 175px;
-	text-align: center;
-	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
-	font-size: 15px;
-	border-style: outset;
-	border-width: 3px;
-	border-color: #FFA01E;
-	border-radius: 4px;
-	background-color: #FFA731;
-	color: #FFFFFF;
-}
-
-.button:hover{
-	border-width: 3px;
-	border-color: #FF942A;
-	background-color: #FF9B39;
-	color: #EDEDED;
-	cursor: pointer;
-}
-
-.button:active{
-	border-style: inset;
-	border-width: 3px;
-	border-color: #DB7F00;
-	background-color: #EA8600;
-	color: #D9D9D9;
+    background-color:#FFB959;
+    padding: 10px;
+    border-radius: 20px;
+    box-shadow:0px 0px 4px 1px #975B0B;
 }
