@@ -1,0 +1,52 @@
+@charset "utf-8";
+/* CSS Document */
+
+header{
+	margin-bottom: 10px;
+}
+
+div{
+	width: 300px;
+	height: 210px;
+	color: #FFFFFF;
+	font-size:14px;
+}
+
+.button{
+	margin-left: 145px;
+	width: 150px;
+	height: 25px;
+	text-align: center;
+	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
+	font-size: 14px;
+	border-style:hidden;
+	border-radius: 10px;
+	background-color:#F19133;
+	color: #FFFFFF;
+}
+
+#b1{
+	margin-top: 20px;
+	margin-bottom: -1px;
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+#b2{
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.button:hover{
+	background-color: #F18923;
+	color: #EDEDED;
+	cursor: pointer;
+}
+
+.button:active{
+	border-style:inset;
+	border-width: 1.6px;
+	border-color: #DB7F00;
+	background-color: #EA8600;
+	color: #D9D9D9;
+}
