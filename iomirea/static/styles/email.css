@@ -6,19 +6,22 @@ header{
 }
 
 div{
-	width: 300px;
-	height: 210px;
+	width: 330px;
 	color: #FFFFFF;
-	font-size:14px;
+	font-size:17px;
+}
+
+form{
+	margin-left: 5px;
 }
 
 .button{
-	margin-left: 145px;
+	margin-left: 160px;
 	width: 150px;
-	height: 25px;
+	height: 30px;
 	text-align: center;
 	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
-	font-size: 14px;
+	font-size: 17px;
 	border-style:hidden;
 	border-radius: 10px;
 	background-color:#F19133;
