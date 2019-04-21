@@ -3,18 +3,14 @@
 	<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1"/>
 	<link href="https://iomirea.ml/styles/common.css" rel="stylesheet" type="text/css">
 	<link href="https://iomirea.ml/styles/login.css" rel="stylesheet" type="text/css">
-	
 <head>
 	<title>Authorization</title>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-	<script type="text/javascript">
-
+<script type="text/javascript">
      	$(function() {
 		var redirect = "{{ redirect|safe }}"
-
 		var xhr = new XMLHttpRequest();
-
 		xhr.onreadystatechange = function() {
 			if (this.readyState !== XMLHttpRequest.DONE) {
 				return
@@ -29,23 +25,19 @@
 				alert("Something went terribly wrong. Please, try to refresh page or return back later")
 			}
 		}
-
 		$("#auth_form").on("submit", function(e) {
 			xhr.open("POST", window.location.href, true)
 			xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 			xhr.send("login="+$("#login_field").val()+"&password="+$("#password_field").val())
 		})
 	});
-
 	function ResetPassword() {
 		var email = $("#login_field").val()
 		if (email === "") {
 			alert("Please, enter email")
 			return
 		}
-
 		var xhr = new XMLHttpRequest();
-
 		xhr.onreadystatechange = function() {
 			if (this.readyState !== XMLHttpRequest.DONE) {
 				return
@@ -58,27 +50,24 @@
 				alert('Something went terribly wrong. Please, try to refresh page or return back later')
 			}
 		}
-
 		xhr.open("POST", "{{ url('reset_password') }}", true)
 		xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 		xhr.send("email="+email)
 	}
-
 	</script>
 </head>
 <body>
 	<div>
-	<form id="auth_form" onsubmit="return false;" > 
-	  <header>
-		<img id="logo"/>IOMirea</header>
+		<form id="auth_form" onsubmit="return false;" >
+			<header>
+				<img id="logo"/>IOMirea</header>
 			<p id="top">Email<br>
-			<input class="uinp" type="email" autocorrect="off" id="login_field" name="login">
-			<br>Password<br>
-			<input class="uinp" type="password" id="password_field" name="password">
-			<a class="link" href="javascript:ResetPassword();">Forgot your password?</a><input class="button" type="submit" value="Login">
+				<input class="uinp" type="email" autocorrect="off" id="login_field" name="login">Password
+				<input class="uinp" type="password" id="password_field" name="password">
+				<a class="link" href="javascript:ResetPassword();">Forgot your password?</a><input class="button" type="submit" value="Login">
 			</p>
-		<p id="linkt" >Still not with us? <a class="link" href="/register">Register</a></p>
-	</form>
+			<p id="linkt" >Still not with us? <a class="link" href="/register">Register</a></p>
+		</form>
 	</div>
 </body>
 </html>
