@@ -115,7 +115,7 @@ async def convert_map(
 ) -> typing.Dict[str, typing.Any]:
     result = {}
 
-    if type(query) is not dict:
+    if not isinstance(query, typing.Mapping):
         raise ConvertError(f"Expected dict, got {type(query).__name__}", "")
 
     for name, converter in converters.items():
