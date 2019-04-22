@@ -34,12 +34,14 @@ from aiohttp import web
 import middlewares
 
 from routes.api.v0 import routes as api_v0_routes
+from routes.websocket import routes as ws_routes
 from routes.auth import routes as auth_routes
 from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
 from models.snowflake import SnowflakeGenerator
 from models.config import Config
+from models.event_emitter import EventEmitter
 from log import setup_logging, server_log, AccessLogger
 
 from db.postgres import create_postgres_connection, close_postgres_connection
@@ -87,6 +89,8 @@ async def on_startup(app: web.Application) -> None:
         app, RedisStorage(app["rd_conn"], max_age=max_cookie_age)
     )
 
+    await EventEmitter.setup_emitter(app)
+
 
 if __name__ == "__main__":
     app = web.Application()
@@ -102,6 +106,7 @@ if __name__ == "__main__":
     app.on_cleanup.append(close_postgres_connection)
     app.on_cleanup.append(close_redis_pool)
 
+    app.router.add_routes(ws_routes)
     app.router.add_routes(auth_routes)
     app.router.add_routes(misc_routes)
 

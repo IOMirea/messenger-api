@@ -174,16 +174,7 @@ def parse_token(endpoint: _Handler) -> _Handler:
         except ValueError:
             raise web.HTTPUnauthorized(reason="Bad access token passed")
 
-        password = await req.config_dict["pg_conn"].fetchval(
-            "SELECT password FROM users WHERE id = $1", token.user_id
-        )
-
-        if password is None:
-            raise web.HTTPUnauthorized(
-                reason="Bad access token passed (no such user)"
-            )
-
-        if not await token.verify(password):
+        if not await token.verify():
             raise web.HTTPUnauthorized(reason="Bad access token passed")
 
         req["access_token"] = token

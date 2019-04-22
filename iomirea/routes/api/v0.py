@@ -29,10 +29,63 @@ from db.postgres import USER, SELF_USER, CHANNEL, MESSAGE, FILE, BUGREPORT
 from utils import helpers
 from utils.db import ensure_existance
 from models import converters, checks
+from models import events
 from security import access
 
 
 routes = web.RouteTableDef()
+
+
+@routes.post(endpoints_public.CHANNELS)
+@helpers.parse_token
+@helpers.body_params(
+    {
+        "name": converters.String(
+            strip=True, checks=[checks.LengthBetween(1, 128)]
+        ),
+        "recipients": converters.List(
+            converters.ID(), max_len=100, default=[]
+        ),
+    }
+)
+async def create_channel(req: web.Request) -> web.Response:
+    query = req["body"]
+
+    recipients = set(query["recipients"] + [req["access_token"].user_id])
+
+    new_id = req.config_dict["sf_gen"].gen_id()
+
+    channel = await req.config_dict["pg_conn"].fetchrow(
+        f"INSERT INTO channels (id, name, user_ids) VALUES ($1, $2, $3) RETURNING {CHANNEL}",
+        new_id,
+        query["name"],
+        recipients,
+    )
+
+    await req.config_dict["pg_conn"].fetch(
+        "UPDATE users SET channel_ids = array_append(channel_ids, $1) WHERE id = ANY($2) AND NOT ($3 = ANY(channel_ids))",
+        new_id,
+        recipients,
+        new_id,
+    )
+
+    return web.json_response(CHANNEL.to_json(channel))
+
+
+@routes.get(endpoints_public.CHANNEL)
+@helpers.parse_token
+@access.channel
+async def get_channel(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+
+    record = await req.config_dict["pg_conn"].fetchrow(
+        f"SELECT {CHANNEL} FROM channels WHERE id=$1", channel_id
+    )
+
+    if record is None:
+        raise web.HTTPNotFound(reason="Channel not found")
+
+    return web.json_response(CHANNEL.to_json(record))
 
 
 @routes.get(endpoints_public.MESSAGE)
@@ -114,10 +167,14 @@ async def create_message(req: web.Request) -> web.Response:
         f"SELECT {MESSAGE} FROM messages_with_author WHERE id = $1", snowflake
     )
 
-    return web.json_response(MESSAGE.to_json(message))
+    data = MESSAGE.to_json(message)
+
+    req.config_dict["emitter"].emit(events.MessageCreate.from_data(**data))
+
+    return web.json_response(data)
 
 
-@routes.get(endpoints_public.PINNED_MESSAGES)
+@routes.get(endpoints_public.CHANNEL_PINS)
 @helpers.parse_token
 @access.channel
 async def get_pins(req: web.Request) -> web.Response:
@@ -131,56 +188,6 @@ async def get_pins(req: web.Request) -> web.Response:
     )
 
     return web.json_response([MESSAGE.to_json(record) for record in records])
-
-
-@routes.post(endpoints_public.CHANNELS)
-@helpers.parse_token
-@helpers.body_params(
-    {
-        "name": converters.String(
-            strip=True, checks=[checks.LengthBetween(1, 128)]
-        ),
-        "recipients": converters.List(converters.ID(), max_len=10, default=[]),
-    }
-)
-async def create_channel(req: web.Request) -> web.Response:
-    query = req["body"]
-
-    recipients = set(query["recipients"] + [req["access_token"].user_id])
-
-    new_id = req.config_dict["sf_gen"].gen_id()
-
-    channel = await req.config_dict["pg_conn"].fetchrow(
-        f"INSERT INTO channels (id, name, user_ids) VALUES ($1, $2, $3) RETURNING {CHANNEL}",
-        new_id,
-        query["name"],
-        recipients,
-    )
-
-    await req.config_dict["pg_conn"].fetch(
-        "UPDATE users SET channel_ids = array_append(channel_ids, $1) WHERE id = ANY($2) AND NOT ($3 = ANY(channel_ids))",
-        new_id,
-        recipients,
-        new_id,
-    )
-
-    return web.json_response(CHANNEL.to_json(channel))
-
-
-@routes.get(endpoints_public.CHANNEL)
-@helpers.parse_token
-@access.channel
-async def get_channel(req: web.Request) -> web.Response:
-    channel_id = req["match_info"]["channel_id"]
-
-    record = await req.config_dict["pg_conn"].fetchrow(
-        f"SELECT {CHANNEL} FROM channels WHERE id=$1", channel_id
-    )
-
-    if record is None:
-        raise web.HTTPNotFound(reason="Channel not found")
-
-    return web.json_response(CHANNEL.to_json(record))
 
 
 @routes.get(endpoints_public.USER)

@@ -109,9 +109,16 @@ class Token:
             self._scope,
         )
 
-    async def verify(self, secret: bytes) -> bool:
+    async def verify(self) -> bool:
+        password = await self._conn.fetchval(
+            "SELECT password FROM users WHERE id = $1", self.user_id
+        )
+
+        if password is None:
+            raise RuntimeError("User does not exist in db")
+
         hmac_calculated = self.encode_hmac_component(
-            secret, self.user_id, self.create_offset
+            password, self.user_id, self.create_offset
         )
 
         return hmac_calculated == self._parts[2] and await self.exists()
