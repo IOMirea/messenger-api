@@ -28,7 +28,7 @@ from log import server_log
 async def create_postgres_connection(app: aiohttp.web.Application) -> None:
     server_log.info("Creating postgres connection")
 
-    connection = await asyncpg.connect(**app["config"].postgresql)
+    connection = await asyncpg.create_pool(**app["config"].postgresql)
 
     app["pg_conn"] = connection
 
