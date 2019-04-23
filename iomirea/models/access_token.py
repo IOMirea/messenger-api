@@ -115,7 +115,7 @@ class Token:
         )
 
         if password is None:
-            raise RuntimeError("User does not exist in db")
+            raise ValueError("User does not exist in db")
 
         hmac_calculated = self.encode_hmac_component(
             password, self.user_id, self.create_offset
