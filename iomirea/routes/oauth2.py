@@ -194,7 +194,9 @@ async def post_authorize(req: web.Request) -> web.Response:
         f"{user_id}:{encoded_key}:{query['scope']}",
     )
 
-    return web.HTTPFound(query["redirect_uri"] + f"&code={code}")
+    separator = "&" if "?" in query["redirect_uri"] else "?"
+
+    return web.HTTPFound(query["redirect_uri"] + f"{separator}code={code}")
 
 
 @routes.post("/token")
