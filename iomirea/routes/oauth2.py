@@ -199,7 +199,7 @@ async def post_authorize(req: web.Request) -> web.Response:
 
 @routes.post("/token")
 async def token(req: web.Request) -> web.Response:
-    query = req.query
+    query = await req.post()  # TODO: handle errors
 
     if "grant_type" not in query:
         return web.json_response(
