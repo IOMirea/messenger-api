@@ -48,6 +48,14 @@ class Opcode(enum.Enum):
     HEARTBEAT_ACK = 9
 
 
+class CloseCode(enum.Enum):
+    NORMAL = 1000
+    UNKNOWN_OPCODE = 4001
+    BAD_PAYLOAD = 4002
+    NOT_IDENTIFIED = 4003
+    BAD_TOKEN = 4004
+
+
 class Listener:
     def __init__(self, ws: web.WebSocketResponse, emitter: EventEmitter):
         self.ws = ws
@@ -56,7 +64,6 @@ class Listener:
         self._emitter = emitter
 
         self._last_hb = time.time()
-        self._failed_hb = 0  # TODO: a better way of dealing with heartbeats
 
     async def notify(
         self, *, opcode: Opcode, data: Optional[Any] = None
@@ -81,12 +88,14 @@ class Listener:
 
         async for msg in self.ws:
             # TODO: check message type
-            await self._handle(json.loads(msg.data))
+            try:
+                await self._handle(json.loads(msg.data))
+            except KeyError:
+                await self.close(code=CloseCode.BAD_PAYLOAD)
 
     async def _handle(self, data: Dict[str, Any]) -> None:
         server_log.debug(f"Received ws: {data}")
 
-        # TODO: handle keyerrors
         op = data["op"]
         if op == Opcode.HEARTBEAT.value:
             self._last_hb = time.time()
@@ -97,11 +106,13 @@ class Listener:
                 token = Token.from_string(
                     data["d"]["token"], self._emitter._app["pg_conn"]
                 )
+                if not await token.verify():  # ValueError possible
+                    raise ValueError
             except (ValueError, RuntimeError):
                 await self.notify(opcode=Opcode.INVALIDATE_SESSION)
+                await self.close(code=CloseCode.BAD_TOKEN)
 
-            if not await token.verify():
-                await self.notify(opcode=Opcode.INVALIDATE_SESSION)
+                return
 
             self.user_id = token.user_id
 
@@ -110,37 +121,32 @@ class Listener:
     async def _check_hb(self) -> None:
         interval = HEARTBEAT_INTERVAL / 1000
         response_error_treshold = interval / 10
-        max_failed_heartbeats = 1
 
-        while not self.ws.closed and self._failed_hb <= max_failed_heartbeats:
+        while not self.ws.closed:
             await asyncio.sleep(interval)
 
             response_error = (time.time() - self._last_hb) - interval
 
             if response_error > response_error_treshold:
-                server_log.debug(
-                    f"Heartbeat failed for user {self.user_id}. Total failed: {self._failed_hb}"
-                )
+                server_log.debug(f"Heartbeat: expired for user {self.user_id}")
 
-                self._failed_hb += 1
-            else:
-                self._failed_hb = max((0, self._failed_hb - 1))
+                break
 
-        server_log.debug(f"Closing listener {self} (heartbeat expired)")
+        server_log.debug(f"Heartbeat: closing listener {self}")
 
         await self.close()
 
     async def close(
         self,
         *,
-        code: int = 1000,
+        code: CloseCode = CloseCode.NORMAL,
         message: Union[str, bytes] = b"",
         cleanup: bool = True,
     ) -> None:
         if cleanup:
             self._emitter.remove_listener(self)
 
-        await self.ws.close(code=code, message=message)
+        await self.ws.close(code=code.value, message=message)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} user_id={self.user_id}>"
@@ -164,7 +170,6 @@ class EventEmitter:
         app.on_cleanup.append(emitter.close)
 
     def emit(self, event: Event) -> None:
-        # TODO: use self.app.loop.ensure_future() ?
         if event.scope is EventScope.LOCAL:
             task = self.notify_channel(event)
         elif event.scope is EventScope.OUTER:
@@ -173,8 +178,10 @@ class EventEmitter:
             task = self.notify_everyone(event)
         else:
             server_log.info(f"Emitter: unknown event scope: {event.scope}")
+
             return
 
+        # TODO: use self.app.loop.ensure_future() ?
         asyncio.create_task(task)
 
     async def notify_channel(self, event: Event) -> None:
@@ -214,6 +221,7 @@ class EventEmitter:
 
         if self._closing:
             await ws.close()
+
             return None
 
         return Listener(ws, self)
@@ -259,12 +267,18 @@ class EventEmitter:
 
                     self._users[listener.user_id].remove(channel_id)
 
-    async def close(self, app: web.Application) -> None:
+    async def close(
+        self,
+        app: web.Application,
+        *,
+        code: CloseCode = CloseCode.NORMAL,
+        message: Union[str, bytes] = b"",
+    ) -> None:
         self._closing = True
 
         for listeners in self._listeners.values():
             for listener in listeners:
-                await listener.close(cleanup=False)
+                await listener.close(code=code, message=message, cleanup=False)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} closing={self._closing}>"
