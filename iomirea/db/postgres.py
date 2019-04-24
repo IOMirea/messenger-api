@@ -107,7 +107,6 @@ class User(IDObject):
 
 class SelfUser(User):
     _keys = User._keys + ("email",)  # type: ignore
-    _embedded = {"test": User()}
 
 
 class Channel(IDObject):
