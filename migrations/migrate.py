@@ -19,7 +19,7 @@ async def get_config_version(config: Dict[str, Any]) -> int:
     return config.get("config-version", -1)
 
 
-async def get_db_version(connection: asyncpg.Connection) -> int:
+async def get_pg_version(connection: asyncpg.Connection) -> int:
     try:
         record = await connection.fetchrow(
             "SELECT version FROM versions WHERE name='database';"
@@ -103,11 +103,11 @@ async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-async def perform_db_migration(
+async def perform_pg_migration(
     config: Dict[str, Any], connection: asyncpg.Connection
 ) -> None:
-    migrations = get_migrations("migrations/db", config, connection)
-    current_version = await get_db_version(connection)
+    migrations = get_migrations("migrations/postgres", config, connection)
+    current_version = await get_pg_version(connection)
 
     migrations = [m for m in migrations if m.version > current_version]
 
@@ -152,9 +152,9 @@ async def main() -> None:
     new_config = await perform_config_migration(config)
     init_logger(new_config)
 
-    db_connection = await asyncpg.connect(**new_config["postgresql"])
+    pg_connection = await asyncpg.connect(**new_config["postgresql"])
 
-    await perform_db_migration(config, db_connection)
+    await perform_pg_migration(config, pg_connection)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-from migration import DBMigration
+from migration import PGMigration
 
 
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def up(self, latest: int) -> None:
         await self.conn.fetch("ALTER TABLE users ADD COLUMN name VARCHAR(128)")
         await self.conn.fetch("UPDATE users SET name = 'User'")

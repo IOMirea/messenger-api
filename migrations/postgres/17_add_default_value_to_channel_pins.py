@@ -16,15 +16,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from migration import PGMigration
 
-from migration import DBMigration
 
-
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def up(self, latest: int) -> None:
         await self.conn.execute(
             """
-            ALTER TABLE messages DROP COLUMN edited;
-            ALTER TABLE messages ADD COLUMN edit_id BIGINT;
+            ALTER TABLE channels ALTER COLUMN pinned_ids SET DEFAULT ARRAY[]::BIGINT[];
             """
         )

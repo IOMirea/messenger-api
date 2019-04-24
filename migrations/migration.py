@@ -24,7 +24,7 @@ class BaseMigration:
         )
 
 
-class DBMigration(BaseMigration):
+class PGMigration(BaseMigration):
     def __init__(self, version: int, connection: asyncpg.Connection):
         super().__init__(version)
 
@@ -63,4 +63,3 @@ class ConfigMigration(BaseMigration):
 
 
 # TODO: RedisMigration
-# TODO: rename DBMigration to PGMigration

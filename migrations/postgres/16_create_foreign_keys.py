@@ -16,25 +16,24 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from migration import DBMigration
+from migration import PGMigration
 
 
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def up(self, latest: int) -> None:
         await self.conn.execute(
             """
             ALTER TABLE messages ADD CONSTRAINT messages_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES channels(id);
             ALTER TABLE messages ADD CONSTRAINT messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES users(id);
-                               
+
             ALTER TABLE files ADD CONSTRAINT files_channel_id_fkey FOREIGN KEY (channel_id) REFERENCES channels(id);
             ALTER TABLE files ADD CONSTRAINT files_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id);
-            
+
             ALTER TABLE applications ADD CONSTRAINT applications_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;
-                                                                                                                                                                                    
+
             ALTER TABLE bugreports ADD CONSTRAINT bugreports_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
-   
+
             ALTER TABLE tokens ADD CONSTRAINT tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
             ALTER TABLE tokens ADD CONSTRAINT tokens_app_id_fkey FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE;
             """
-                                                                                                                                                                                                                                                        )
-                    
+        )

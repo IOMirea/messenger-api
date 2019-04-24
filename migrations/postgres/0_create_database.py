@@ -1,8 +1,8 @@
-from migration import DBMigration
+from migration import PGMigration
 from utils import migrate_log
 
 
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def _up(self, latest: int) -> None:
         filename = "schema.sql"
 

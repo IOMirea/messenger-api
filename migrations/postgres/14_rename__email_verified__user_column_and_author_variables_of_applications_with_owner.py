@@ -17,10 +17,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from migration import DBMigration
+from migration import PGMigration
 
 
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def up(self, latest: int) -> None:
         await self.conn.execute(
             """

@@ -17,17 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from migration import DBMigration
+from migration import PGMigration
 
 
-class Migration(DBMigration):
+class Migration(PGMigration):
     async def up(self, latest: int) -> None:
         await self.conn.execute(
             """
-            ALTER TABLE users ADD COLUMN email_verified BOOL DEFAULT false;
-            UPDATE users SET email_verified = true;
-            ALTER TABLE users ALTER COLUMN email_verified SET NOT NULL;
-
-            ALTER TABLE users ADD CONSTRAINT unique_email_index UNIQUE(email);
+            ALTER TABLE messages DROP COLUMN edited;
+            ALTER TABLE messages ADD COLUMN edit_id BIGINT;
             """
         )
