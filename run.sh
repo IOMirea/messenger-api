@@ -2,7 +2,7 @@
 
 while true; do
     # git reset --hard
-    git pull origin master
+    git pull
 
     python3 migrations/migrate.py
     exit_code=$?
