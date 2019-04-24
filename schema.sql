@@ -7,7 +7,7 @@ CREATE TABLE channels (
 	id BIGINT PRIMARY KEY NOT NULL,
 	name VARCHAR(128),
 	user_ids BIGINT[] NOT NULL,
-	pinned_ids BIGINT[] NOT NULL
+	pinned_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[]
 );
 
 CREATE TABLE users (
