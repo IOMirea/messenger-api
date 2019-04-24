@@ -88,6 +88,24 @@ async def get_channel(req: web.Request) -> web.Response:
     return web.json_response(CHANNEL.to_json(record))
 
 
+@routes.put(endpoints_public.CHANNEL_RECIPIENT)
+@helpers.parse_token
+@access.channel
+async def add_channel_recipient(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    user_id = req["match_info"]["user_id"]
+
+    await ensure_existance(req, "channels", channel_id, "Channel")
+    await ensure_existance(req, "users", user_id, "User")
+
+    if not await req.config_dict["pg_conn"].fetchval(
+        "SELECT * FROM add_channel_user($1, $2)", channel_id, user_id
+    ):
+        raise web.HTTPNotModified(reason="Is user already in channel?")
+
+    raise web.HTTPNoContent()
+
+
 @routes.get(endpoints_public.MESSAGE)
 @helpers.parse_token
 @access.channel
