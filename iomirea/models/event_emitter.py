@@ -23,13 +23,13 @@ import enum
 import time
 import asyncio
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Set
 
 from aiohttp import web
 
 from log import server_log
 from models.access_token import Token
-from models.events import Event, EventScope
+from models.events import Event, LocalEvent, OuterEvent, GlobalEvent
 
 
 HEARTBEAT_INTERVAL = 30000
@@ -57,6 +57,8 @@ class CloseCode(enum.Enum):
 
 
 class Listener:
+    __slots__ = ("ws", "user_id", "_emitter", "_last_hb")
+
     def __init__(self, ws: web.WebSocketResponse, emitter: EventEmitter):
         self.ws = ws
         self.user_id: Optional[int] = None
@@ -67,16 +69,34 @@ class Listener:
 
     async def notify(
         self, *, opcode: Opcode, data: Optional[Any] = None
-    ) -> None:
-        if data is None:
-            await self.ws.send_json({"op": opcode.value})
-        else:
-            await self.ws.send_json({"op": opcode.value, "d": data})
+    ) -> bool:
+        try:
+            if data is None:
+                await self.ws.send_json({"op": opcode.value})
+            else:
+                await self.ws.send_json({"op": opcode.value, "d": data})
+        except RuntimeError:  # ws closed (dirty)
+            server_log.debug("WS closed by user (dirty)")
 
-    async def event_notify(self, event: Event) -> None:
-        await self.ws.send_json(
-            {"op": Opcode.DISPATCH.value, "d": event.payload, "t": event.name}
-        )
+            return False
+
+        return True
+
+    async def event_notify(self, event: Event) -> bool:
+        try:
+            await self.ws.send_json(
+                {
+                    "op": Opcode.DISPATCH.value,
+                    "d": event.payload,
+                    "t": event.name,
+                }
+            )
+        except RuntimeError:  # ws closed (dirty)
+            server_log.debug("WS closed by user (dirty)")
+
+            return False
+
+        return True
 
     async def listen(self) -> None:
         await self.notify(
@@ -140,11 +160,11 @@ class Listener:
         self,
         *,
         code: CloseCode = CloseCode.NORMAL,
-        message: Union[str, bytes] = b"",
+        message: bytes = b"",
         cleanup: bool = True,
     ) -> None:
         if cleanup:
-            self._emitter.remove_listener(self)
+            await self._emitter.remove_listener(self)
 
         await self.ws.close(code=code.value, message=message)
 
@@ -152,15 +172,15 @@ class Listener:
         return f"<{self.__class__.__name__} user_id={self.user_id}>"
 
 
-# TODO: remove closed listeners
 class EventEmitter:
     def __init__(self, app: web.Application):
         self._app = app
-        self._channels: Dict[int, List[int]] = {}
-        self._users: Dict[int, List[int]] = {}
-        self._listeners: Dict[int, List[Listener]] = {}
+        self._channels: Dict[int, Set[int]] = {}
+        self._users: Dict[int, Set[int]] = {}
+        self._listeners: Dict[int, Set[Listener]] = {}
 
         self._closing = False
+        self._lock = asyncio.Lock()
 
     @staticmethod
     async def setup_emitter(app: web.Application) -> None:
@@ -170,49 +190,62 @@ class EventEmitter:
         app.on_cleanup.append(emitter.close)
 
     def emit(self, event: Event) -> None:
-        if event.scope is EventScope.LOCAL:
+        if isinstance(event, LocalEvent):
             task = self.notify_channel(event)
-        elif event.scope is EventScope.OUTER:
+        elif isinstance(event, OuterEvent):
             task = self.notify_channels(event)
-        elif event.scope is EventScope.GLOBAL:
+        elif isinstance(event, GlobalEvent):
             task = self.notify_everyone(event)
         else:
-            server_log.info(f"Emitter: unknown event scope: {event.scope}")
+            server_log.info(f"Emitter: unknown event scope: {event}")
 
             return
 
         # TODO: use self.app.loop.ensure_future() ?
         asyncio.create_task(task)
 
-    async def notify_channel(self, event: Event) -> None:
+    async def notify_channel(self, event: LocalEvent) -> None:
         server_log.debug(f"Notifying channel {event.channel_id}: {event}")
 
-        # temporary
-        if event.channel_id is None:
-            raise RuntimeError
+        to_close = []
 
-        for user_id in self._channels.get(event.channel_id, ()):
-            for listener in self._listeners.get(user_id, ()):
-                await listener.event_notify(event)
+        async with self._lock:
+            for user_id in self._channels.get(event.channel_id, ()):
+                for listener in self._listeners[user_id]:
+                    if not await listener.event_notify(event):
+                        to_close.append(listener)
 
-    async def notify_channels(self, event: Event) -> None:
+        for listener in to_close:
+            await listener.close()
+
+    async def notify_channels(self, event: OuterEvent) -> None:
         server_log.debug(f"Notifying user {event.user_id} channels: {event}")
 
-        # temporary
-        if event.user_id is None:
-            raise RuntimeError
+        to_close = []
 
-        for channel_id in self._users.get(event.user_id, ()):
-            for user_id in self._channels.get(channel_id, ()):
-                for listener in self._listeners.get(user_id, ()):
-                    await listener.event_notify(event)
+        async with self._lock:
+            for channel_id in self._users.get(event.user_id, ()):
+                for user_id in self._channels[channel_id]:
+                    for listener in self._listeners[user_id]:
+                        if not await listener.event_notify(event):
+                            to_close.append(listener)
 
-    async def notify_everyone(self, event: Event) -> None:
+        for listener in to_close:
+            await listener.close()
+
+    async def notify_everyone(self, event: GlobalEvent) -> None:
         server_log.debug(f"Notifying everyone: {event}")
 
-        for listeners in self._listeners.values():
-            for listener in listeners:
-                await listener.event_notify(event)
+        to_close = []
+
+        async with self._lock:
+            for listeners in self._listeners.values():
+                for listener in listeners:
+                    if not await listener.event_notify(event):
+                        to_close.append(listener)
+
+        for listener in to_close:
+            await listener.close()
 
     async def create_listener(self, req: web.Request) -> Optional[Listener]:
         ws = web.WebSocketResponse()
@@ -237,42 +270,52 @@ class EventEmitter:
             "SELECT channel_ids FROM users WHERE id = $1", listener.user_id
         )
 
-        for channel_id in channels:
-            if channel_id is self._channels:
-                self._channels[channel_id].append(listener.user_id)
+        async with self._lock:
+            for channel_id in channels:
+                if channel_id in self._channels:
+                    self._channels[channel_id].add(listener.user_id)
+                else:
+                    self._channels[channel_id] = {listener.user_id}
+
+            self._users[listener.user_id] = set(channels)
+
+            if listener.user_id in self._listeners:
+                self._listeners[listener.user_id].add(listener)
             else:
-                self._channels[channel_id] = [listener.user_id]
+                self._listeners[listener.user_id] = {listener}
 
-        self._users[listener.user_id] = channels
-
-        if listener.user_id in self._listeners:
-            self._listeners[listener.user_id].append(listener)
-        else:
-            self._listeners[listener.user_id] = [listener]
-
-    def remove_listener(self, listener: Listener) -> None:
+    async def remove_listener(self, listener: Listener) -> None:
         if listener.user_id is None:  # user did not identify
             return
 
-        self._listeners[listener.user_id].remove(listener)
+        if listener.user_id not in self._listeners:  # already cleanud up
+            return
 
-        if not self._listeners[listener.user_id]:
-            del self._listeners[listener.user_id]
+        async with self._lock:
+            self._listeners[listener.user_id].remove(listener)
 
-            for channel_id in self._users[listener.user_id]:
+            if self._listeners[listener.user_id]:
+                return
+            else:
+                del self._listeners[listener.user_id]
+
+            for channel_id in tuple(self._users[listener.user_id]):
                 self._channels[channel_id].remove(listener.user_id)
 
                 if not self._channels[channel_id]:
                     del self._channels[channel_id]
 
-                    self._users[listener.user_id].remove(channel_id)
+                self._users[listener.user_id].remove(channel_id)
+
+                if not self._users[listener.user_id]:
+                    del self._users[listener.user_id]
 
     async def close(
         self,
         app: web.Application,
         *,
         code: CloseCode = CloseCode.NORMAL,
-        message: Union[str, bytes] = b"",
+        message: bytes = b"",
     ) -> None:
         self._closing = True
 

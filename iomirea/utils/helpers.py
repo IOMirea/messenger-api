@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import json
 
 from typing import (
@@ -171,10 +170,9 @@ def parse_token(endpoint: _Handler) -> _Handler:
 
         try:
             token = Token.from_string(token_header, req.config_dict["pg_conn"])
+            if not await token.verify():  # ValueError possible
+                raise ValueError
         except ValueError:
-            raise web.HTTPUnauthorized(reason="Bad access token passed")
-
-        if not await token.verify():
             raise web.HTTPUnauthorized(reason="Bad access token passed")
 
         req["access_token"] = token

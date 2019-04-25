@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
 
 from typing import Dict, Tuple, Any, Optional, List
 
@@ -41,7 +42,7 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 class IDObject:
     _keys: Tuple[str, ...] = ()
-    _embedded: Dict[str, "IDObject"] = {}
+    _embedded: Dict[str, IDObject] = {}
 
     def __init__(self) -> None:
         """!!!Should be called at the end when overloaded!!!"""

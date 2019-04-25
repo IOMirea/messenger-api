@@ -18,54 +18,73 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import enum
-
 from typing import Any, Dict
 
 
-class EventScope(enum.Enum):
-    LOCAL = 0
-    OUTER = 1
-    GLOBAL = 2
-
-
 class Event:
-    name = "BASE_EVENT"
-    scope = EventScope.LOCAL
+    __slots__ = ("channel_id",)
 
-    def __init__(
-        self,
-        *,
-        user_id: int = None,
-        channel_id: int = None,
-        payload: Dict[str, Any] = {},
-    ):
-        self.user_id = user_id
-        self.channel_id = channel_id
-
+    def __init__(self, *, payload: Dict[str, Any]):
         self._payload = payload
+        self._parse_payload()
 
-    @classmethod
-    def from_data(cls, **data: Any) -> Event:
-        event = cls(payload=data)
-        event.parse_payload()
-
-        return event
-
-    def parse_payload(self) -> None:
+    def _parse_payload(self) -> None:
         raise NotImplementedError
+
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
 
     @property
     def payload(self) -> Dict[str, Any]:
         return self._payload
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} user_id={self.user_id} channel_id={self.channel_id}>"
+        return f"<{self.__class__.__name__}>"
 
 
-class MessageCreate(Event):
-    name = "MESSAGE_CREATE"
+class LocalEvent(Event):
+    __slots__ = ("channel_id",)
 
+    def __init__(self, **kwargs: Any):
+        self.channel_id = -1
+
+        super().__init__(**kwargs)
+
+        if self.channel_id == -1:
+            raise RuntimeError(
+                "channel_id field of LocalEvent should not be None"
+            )
+
+
+class OuterEvent(Event):
+    __slots__ = ("user_id",)
+
+    def __init__(self, **kwargs: Any):
+        self.user_id = -1
+
+        super().__init__(**kwargs)
+
+        if self.user_id == -1:
+            raise RuntimeError(
+                "user_id field of OuterEvent should not be None"
+            )
+
+
+class GlobalEvent(Event):
+    pass
+
+
+class MESSAGE_CREATE(LocalEvent):
     def parse_payload(self) -> None:
-        self.user_id = self._payload["author"]["id"]
         self.channel_id = self._payload["channel_id"]
+
+
+class CHANNEL_UPDATE(LocalEvent):
+    def _parse_payload(self) -> None:
+        self.channel_id = self._payload["id"]
+
+
+class USER_UPDATE(OuterEvent):
+    def _parse_payload(self) -> None:
+        self.user_id = self._payload["id"]

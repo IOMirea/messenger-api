@@ -72,6 +72,30 @@ async def create_channel(req: web.Request) -> web.Response:
     return web.json_response(CHANNEL.to_json(channel))
 
 
+@routes.put(endpoints_public.CHANNEL)
+@helpers.parse_token
+@access.channel
+@helpers.body_params(
+    {
+        "name": converters.String(
+            strip=True, checks=[checks.LengthBetween(1, 128)]
+        )
+    }
+)
+async def edit_channel(req: web.Request) -> web.Response:
+    record = await req.config_dict["pg_conn"].fetchrow(
+        f"UPDATE channels SET name = $1 WHERE id = $2 RETURNING {CHANNEL}",
+        req["body"]["name"],
+        req["match_info"]["channel_id"],
+    )
+
+    channel = CHANNEL.to_json(record)
+
+    req.config_dict["emitter"].emit(events.CHANNEL_UPDATE(payload=channel))
+
+    return web.json_response(channel)
+
+
 @routes.get(endpoints_public.CHANNEL)
 @helpers.parse_token
 @access.channel
@@ -187,7 +211,7 @@ async def create_message(req: web.Request) -> web.Response:
 
     data = MESSAGE.to_json(message)
 
-    req.config_dict["emitter"].emit(events.MessageCreate.from_data(**data))
+    req.config_dict["emitter"].emit(events.MESSAGE_CREATE(payload=data))
 
     return web.json_response(data)
 
