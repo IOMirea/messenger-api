@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 from __future__ import annotations
 
 import uuid
@@ -26,6 +25,8 @@ import aioredis
 
 
 class ConfirmationCode:
+    __slots__ = ("user_id", "_code", "_conn")
+
     def __init__(
         self, user_id: int, code: str, conn: aioredis.ConnectionsPool
     ):

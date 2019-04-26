@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import hmac
 import time
 import math
@@ -32,6 +31,15 @@ from constants import EPOCH_OFFSET
 
 
 class Token:
+    __slots__ = (
+        "user_id",
+        "create_offset",
+        "_scope",
+        "_app_id",
+        "_parts",
+        "_conn",
+    )
+
     def __init__(
         self,
         user_id: int,
@@ -53,7 +61,7 @@ class Token:
 
     @classmethod
     def from_string(cls, input_str: str, conn: asyncpg.Connection) -> "Token":
-        if input_str.startswith("Bearer "):
+        if input_str.lower().startswith("bearer "):
             input_str = input_str[7:]
 
         parts = input_str.split(".")
