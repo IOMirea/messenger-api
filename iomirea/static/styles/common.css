@@ -16,14 +16,14 @@ html, body {
 body{
 	height: inherit;
 	width: inherit;
-	background-image: url("https://iomirea.ml/fox.jpg");
+	background-image: url("/fox.jpg");
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size:cover;
 }
 
 #logo{
-	content:url("https://iomirea.ml/logo.png");
+	content:url("/logo.png");
 	height: 42px;
 	widht: 42px;
 }

@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import asyncio
 import argparse
 import ssl
@@ -72,7 +71,17 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--with-eval", action="store_true", help="enable python eval endpoint"
+    "-e",
+    "--with-eval",
+    action="store_true",
+    help="enable python eval endpoint (works only in debug mode)",
+)
+
+argparser.add_argument(
+    "-s",
+    "--with-static",
+    action="store_true",
+    help="enable static files support by server (works only in debug mode)",
 )
 
 
@@ -164,6 +173,11 @@ if __name__ == "__main__":
             server_log.info(
                 f"Python eval endpoint launched at: {Debugapp.router['python-eval'].url_for()}"
             )
+
+        if app["args"].with_static:
+            app.router.add_static("/", "iomirea/static", append_version=True)
+
+            server_log.info("Enabled static files support")
 
     web.run_app(
         app,
