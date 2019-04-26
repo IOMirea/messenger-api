@@ -95,6 +95,8 @@ async def edit_channel(req: web.Request) -> web.Response:
     )
 
     diff = CHANNEL.diff_to_json(old_row, row)
+    if not diff:
+        raise web.HTTPNotModified()
 
     req.config_dict["emitter"].emit(events.CHANNEL_UPDATE(payload=diff))
 

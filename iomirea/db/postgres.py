@@ -42,12 +42,23 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 class IDObject:
     def __init__(self) -> None:
+        # keys to be fetched from database
         self._keys = {"id"}
-        self._embedded: Dict[str, Any] = {}
+
+        # objects to be embedded into keys
+        # embedded objects are flattened using syntax:
+        # "_{dict_key}_{actual_variable}"
+        # the number of nested objects is not limited
+        self._embedded: Dict[str, Any] = {}  # objects to be embedded
+
+        # keys that should always be present in diff calculation
+        # note: if there is no diff, empty dict will be returned
         self._diff_reserved = {"id"}
 
     @property
     def keys(self) -> str:
+        """Generates a list of database query keys"""
+
         try:
             return self._keys_str  # type: ignore
         except AttributeError:
@@ -56,6 +67,11 @@ class IDObject:
         return self._keys_str
 
     def get_keys(self, *, embedded: Optional[str] = None) -> List[str]:
+        """
+        Returns a flattened list of keys.
+        Unlike keys property does not save state.
+        """
+
         keys = []
         for k in self._keys:
             if embedded is None:
@@ -77,18 +93,38 @@ class IDObject:
         return keys
 
     def to_json(
-        self, record: asyncpg.Record, *, embedded: Optional[str] = None
+        self, record: asyncpg.Record, *, _embedded: Optional[str] = None
     ) -> Dict[str, Any]:
+        """
+        Converts database record into dictionary managing nested objects.
+        Note: requires all keys defined by class to be present in record.
+
+        Parameters:
+            record: record object to extract data from.
+            _embedded: internal parameter used for recursion. Do not use it.
+
+        Example:
+            # str(MESSAGE) tells database which keys to fetch managing all
+            # nested objects.
+            # str(MESSAGE) is a shortcut for MESSAGE.keys.
+            #
+            # Note: fetchrow is used. to_json will not work with multiple rows.
+            record = await connection.fetchrow(
+                f"SELECT {MESSAGE} FROM messages_with_author WHERE id = $1", 0
+            )
+            message = MESSAGE.to_json(record)
+        """
+
         obj: Dict[str, Any] = {}
 
         for k in self._keys:
-            if embedded is None:
+            if _embedded is None:
                 obj[k] = record[k]
             else:
-                obj[k] = record[f"_{embedded}_{k}"]
+                obj[k] = record[f"_{_embedded}_{k}"]
 
         for e_name, e_cls in self._embedded.items():
-            obj[e_name] = e_cls.to_json(record, embedded=e_name)
+            obj[e_name] = e_cls.to_json(record, _embedded=e_name)
 
         return obj
 
@@ -99,13 +135,46 @@ class IDObject:
         *,
         embedded: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """
+        Works similarly to to_json, but returns only different fields between
+        old and new mapping. Values from new mapping are returned.
+        Always returns several reserved fields such as object id.
+        If objects do not differ, returns empty dictionary ignoring reserved
+        fields.
+        Manages nested objects like to_json.
+
+        Example:
+            channel_id = 0
+
+            # str(CHANNEL) tells database which keys to fetch managing all
+            # nested objects.
+            # str(CHANNEL) is a shortcut for CHANNEL.keys.
+            #
+            # Note: fetchrow is used. diff_to_json will not work with multiple
+            # rows.
+            old_row = await connection.fetchrow(
+                f"SELECT {CHANNEL} FROM channels WHERE id = $1", channel_id
+            )
+
+            new_row = await connection.fetchrow(
+                f"UPDATE channels SET name = $1 WHERE id = $2 RETURNING {CHANNEL}",
+                "new funny name",
+                channel_id,
+            )
+
+            diff = CHANNEL.diff_to_json(old_row, new_row)
+        """
+
         obj: Dict[str, Any] = {}
 
+        modified = False
+
         for k in self._keys:
-            old_val = old.get(k)
-            if old_val is None or old_val == new[k]:
+            if old[k] == new[k]:
                 if k not in self._diff_reserved:
                     continue
+            else:
+                modified = True
 
             if embedded is None:
                 obj[k] = new[k]
@@ -113,11 +182,18 @@ class IDObject:
                 obj[k] = new[f"_{embedded}_{k}"]
 
         for e_name, e_cls in self._embedded.items():
-            obj[e_name] = e_cls.diff_to_json(old, new, embedded=e_name)
+            embedded = e_cls.diff_to_json(old, new, embedded=e_name)
+            if embedded:  # will be empty with no diff
+                obj[e_name] = embedded
 
-        return obj
+        if modified:
+            return obj
+
+        return {}
 
     def __str__(self) -> str:
+        """A shortcut for keys property"""
+
         return self.keys
 
     def __repr__(self) -> str:
