@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List, Mapping
+from typing import Dict, Any, Optional, List, Mapping, Set
 
 import asyncpg
 import aiohttp
@@ -42,18 +42,23 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 class IDObject:
     def __init__(self) -> None:
-        # keys to be fetched from database
+        # keys to be fetched from database and sent to user
         self._keys = {"id"}
 
         # objects to be embedded into keys
         # embedded objects are flattened using syntax:
         # "_{dict_key}_{actual_variable}"
         # the number of nested objects is not limited
-        self._embedded: Dict[str, Any] = {}  # objects to be embedded
+        self._embedded: Dict[str, Any] = {}
 
         # keys that should always be present in diff calculation
         # note: if there is no diff, empty dict will be returned
         self._diff_reserved = {"id"}
+
+        # keys that should be ignored while checking if object was modified or
+        # not. They are still included into result unless mentioned in
+        # _diff_reserved. For exaple, message edit snowflake
+        self._diff_ignored: Set[str] = set()
 
     @property
     def keys(self) -> str:
@@ -175,7 +180,8 @@ class IDObject:
                 if k not in self._diff_reserved:
                     continue
             else:
-                modified = True
+                if k not in self._diff_ignored:
+                    modified = True
 
             obj[k] = new[k]
 
@@ -229,6 +235,7 @@ class PlainMessage(IDObject):
             "pinned",
         }
         self._diff_reserved |= {"channel_id"}
+        self._diff_ignored = {"edit_id"}
 
 
 class Message(IDObject):
@@ -238,6 +245,7 @@ class Message(IDObject):
         self._keys |= {"edit_id", "channel_id", "content", "pinned"}
         self._embedded = {"author": User()}
         self._diff_reserved |= {"channel_id"}
+        self._diff_ignored = {"edit_id"}
 
 
 class File(IDObject):

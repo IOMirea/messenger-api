@@ -193,13 +193,14 @@ async def patch_message(req: web.Request) -> web.Response:
         raise web.HTTPNotModified()
 
     update_keys_list = ",".join(
-        f"{k} = ${i + 1}" for i, k in enumerate(update_keys)
+        f"{k} = ${i + 1}" for i, k in enumerate(update_keys + ["edit_id"])
     )
 
     # TODO: optimize number of queries
     await req.config_dict["pg_conn"].fetch(
-        f"UPDATE messages SET {update_keys_list} WHERE id = ${len(update_keys) + 1}",
+        f"UPDATE messages SET {update_keys_list} WHERE id = ${len(update_keys) + 2}",
         *[req["body"][k] for k in update_keys],
+        req.config_dict["sf_gen"].gen_id(),
         message_id,
     )
 
