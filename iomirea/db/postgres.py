@@ -93,14 +93,15 @@ class IDObject:
         return keys
 
     def to_json(
-        self, record: asyncpg.Record, *, _embedded: Optional[str] = None
+        self, record: Mapping[str, Any], *, _embedded: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Converts database record into dictionary managing nested objects.
+
         Note: requires all keys defined by class to be present in record.
 
         Parameters:
-            record: record object to extract data from.
+            record: object to extract data from.
             _embedded: internal parameter used for recursion. Do not use it.
 
         Example:
@@ -129,19 +130,19 @@ class IDObject:
         return obj
 
     def diff_to_json(
-        self,
-        old: Mapping[str, Any],
-        new: Mapping[str, Any],
-        *,
-        embedded: Optional[str] = None,
+        self, old: Mapping[str, Any], new: Mapping[str, Any]
     ) -> Dict[str, Any]:
         """
         Works similarly to to_json, but returns only different fields between
-        old and new mapping. Values from new mapping are returned.
+        old and new mapping. Values from new mapping are applied.
         Always returns several reserved fields such as object id.
         If objects do not differ, returns empty dictionary ignoring reserved
-        fields.
-        Manages nested objects like to_json.
+        fields. Changes in embedded objects are not tracked and are taken from
+        new mapping.
+
+        Parameters:
+            old: old mapping.
+            new: new mapping, values are taken from it.
 
         Example:
             channel_id = 0
@@ -176,20 +177,15 @@ class IDObject:
             else:
                 modified = True
 
-            if embedded is None:
-                obj[k] = new[k]
-            else:
-                obj[k] = new[f"_{embedded}_{k}"]
+            obj[k] = new[k]
+
+        if not modified:
+            return {}
 
         for e_name, e_cls in self._embedded.items():
-            embedded = e_cls.diff_to_json(old, new, embedded=e_name)
-            if embedded:  # will be empty with no diff
-                obj[e_name] = embedded
+            obj[e_name] = e_cls.to_json(new, _embedded=e_name)
 
-        if modified:
-            return obj
-
-        return {}
+        return obj
 
     def __str__(self) -> str:
         """A shortcut for keys property"""
@@ -232,6 +228,7 @@ class PlainMessage(IDObject):
             "edit_id",
             "pinned",
         }
+        self._diff_reserved |= {"channel_id"}
 
 
 class Message(IDObject):
@@ -240,6 +237,7 @@ class Message(IDObject):
 
         self._keys |= {"edit_id", "channel_id", "content", "pinned"}
         self._embedded = {"author": User()}
+        self._diff_reserved |= {"channel_id"}
 
 
 class File(IDObject):

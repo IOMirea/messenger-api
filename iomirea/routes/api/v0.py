@@ -126,7 +126,6 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
     user_id = req["match_info"]["user_id"]
 
-    await ensure_existance(req, "channels", channel_id, "Channel")
     await ensure_existance(req, "users", user_id, "User")
 
     if not await req.config_dict["pg_conn"].fetchval(
@@ -135,58 +134,6 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
         raise web.HTTPNotModified(reason="Is user already in channel?")
 
     raise web.HTTPNoContent()
-
-
-@routes.get(endpoints_public.MESSAGE)
-@helpers.parse_token
-@access.channel
-async def get_message(req: web.Request) -> web.Response:
-    channel_id = req["match_info"]["channel_id"]
-    message_id = req["match_info"]["message_id"]
-
-    await ensure_existance(req, "channels", channel_id, "Channel")
-
-    record = await req.config_dict["pg_conn"].fetchrow(
-        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND id=$2",
-        channel_id,
-        message_id,
-    )
-
-    if record is None:
-        raise web.HTTPNotFound(reason="Message not found")
-
-    return web.json_response(MESSAGE.to_json(record))
-
-
-@routes.get(endpoints_public.MESSAGES)
-@helpers.parse_token
-@access.channel
-@helpers.query_params(
-    {
-        "offset": converters.Integer(
-            default=0, checks=[checks.BetweenXAndInt64(0)]
-        ),
-        "limit": converters.Integer(
-            default=200, checks=[checks.Between(0, 200)]
-        ),
-    }
-)
-async def get_messages(req: web.Request) -> web.Response:
-    channel_id = req["match_info"]["channel_id"]
-
-    offset = req["query"]["offset"]
-    limit = req["query"]["limit"]
-
-    await ensure_existance(req, "channels", channel_id, "Channel")
-
-    records = await req.config_dict["pg_conn"].fetch(
-        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 ORDER BY id LIMIT $2 OFFSET $3",
-        channel_id,
-        limit,
-        offset,
-    )
-
-    return web.json_response([MESSAGE.to_json(record) for record in records])
 
 
 @routes.post(endpoints_public.MESSAGES)
@@ -223,13 +170,106 @@ async def create_message(req: web.Request) -> web.Response:
     return web.json_response(data)
 
 
+@routes.patch(endpoints_public.MESSAGE)
+@helpers.parse_token
+@access.channel
+@access.edit_message
+@helpers.body_params(
+    {
+        "content": converters.String(
+            strip=True, checks=[checks.LengthBetween(1, 2048)], default=None
+        )
+    }
+)
+async def patch_message(req: web.Request) -> web.Response:
+    message_id = req["match_info"]["message_id"]
+
+    update_keys = []
+    for key, value in req["body"].items():
+        if value is not None:
+            update_keys.append(key)
+
+    if not update_keys:
+        raise web.HTTPNotModified()
+
+    update_keys_list = ",".join(
+        f"{k} = ${i + 1}" for i, k in enumerate(update_keys)
+    )
+
+    # TODO: optimize number of queries
+    await req.config_dict["pg_conn"].fetch(
+        f"UPDATE messages SET {update_keys_list} WHERE id = ${len(update_keys) + 1}",
+        *[req["body"][k] for k in update_keys],
+        message_id,
+    )
+
+    new_row = await req.config_dict["pg_conn"].fetchrow(
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE id = $1", message_id
+    )
+
+    diff = MESSAGE.diff_to_json(req["message"], new_row)
+
+    if not diff:
+        raise web.HTTPNotModified
+
+    req.config_dict["emitter"].emit(events.MESSAGE_UPDATE(payload=diff))
+
+    return web.json_response(diff)
+
+
+@routes.get(endpoints_public.MESSAGE)
+@helpers.parse_token
+@access.channel
+async def get_message(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    message_id = req["match_info"]["message_id"]
+
+    record = await req.config_dict["pg_conn"].fetchrow(
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND id=$2",
+        channel_id,
+        message_id,
+    )
+
+    if record is None:
+        raise web.HTTPNotFound(reason="Message not found")
+
+    return web.json_response(MESSAGE.to_json(record))
+
+
+@routes.get(endpoints_public.MESSAGES)
+@helpers.parse_token
+@access.channel
+@helpers.query_params(
+    {
+        "offset": converters.Integer(
+            default=0, checks=[checks.BetweenXAndInt64(0)]
+        ),
+        "limit": converters.Integer(
+            default=200, checks=[checks.Between(0, 200)]
+        ),
+    }
+)
+async def get_messages(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+
+    offset = req["query"]["offset"]
+    limit = req["query"]["limit"]
+
+    records = await req.config_dict["pg_conn"].fetch(
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 ORDER BY id LIMIT $2 OFFSET $3",
+        channel_id,
+        limit,
+        offset,
+    )
+
+    return web.json_response([MESSAGE.to_json(record) for record in records])
+
+
 @routes.get(endpoints_public.CHANNEL_PINS)
 @helpers.parse_token
 @access.channel
 async def get_pins(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
-
-    await ensure_existance(req, "channels", channel_id, "Channel")
 
     records = await req.config_dict["pg_conn"].fetch(
         f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND pinned=true",
@@ -261,8 +301,6 @@ async def get_user(req: web.Request) -> web.Response:
 @access.user
 async def get_user_channels(req: web.Request) -> web.Response:
     user_id = req["match_info"]["user_id"]
-
-    await ensure_existance(req, "users", user_id, "User")
 
     records = await req.config_dict["pg_conn"].fetch(
         f"SELECT {CHANNEL} FROM channels WHERE id=ANY((SELECT channel_ids FROM users WHERE id=$1)[:])",
