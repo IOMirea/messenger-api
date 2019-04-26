@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import json
 
 from typing import Dict, List
@@ -83,17 +82,23 @@ async def create_channel(req: web.Request) -> web.Response:
     }
 )
 async def edit_channel(req: web.Request) -> web.Response:
-    record = await req.config_dict["pg_conn"].fetchrow(
-        f"UPDATE channels SET name = $1 WHERE id = $2 RETURNING {CHANNEL}",
-        req["body"]["name"],
-        req["match_info"]["channel_id"],
+    channel_id = req["match_info"]["channel_id"]
+
+    old_row = await req.config_dict["pg_conn"].fetchrow(
+        f"SELECT {CHANNEL} FROM channels WHERE id = $1", channel_id
     )
 
-    channel = CHANNEL.to_json(record)
+    row = await req.config_dict["pg_conn"].fetchrow(
+        f"UPDATE channels SET name = $1 WHERE id = $2 RETURNING {CHANNEL}",
+        req["body"]["name"],
+        channel_id,
+    )
 
-    req.config_dict["emitter"].emit(events.CHANNEL_UPDATE(payload=channel))
+    diff = CHANNEL.diff_to_json(old_row, row)
 
-    return web.json_response(channel)
+    req.config_dict["emitter"].emit(events.CHANNEL_UPDATE(payload=diff))
+
+    return web.json_response(diff)
 
 
 @routes.get(endpoints_public.CHANNEL)

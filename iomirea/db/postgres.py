@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import Dict, Tuple, Any, Optional, List
+from typing import Dict, Any, Optional, List, Mapping
 
 import asyncpg
 import aiohttp
@@ -41,13 +41,10 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 
 class IDObject:
-    _keys: Tuple[str, ...] = ()
-    _embedded: Dict[str, IDObject] = {}
-
     def __init__(self) -> None:
-        """!!!Should be called at the end when overloaded!!!"""
-
-        self._keys = ("id",) + self._keys
+        self._keys = {"id"}
+        self._embedded: Dict[str, Any] = {}
+        self._diff_reserved = {"id"}
 
     @property
     def keys(self) -> str:
@@ -95,6 +92,31 @@ class IDObject:
 
         return obj
 
+    def diff_to_json(
+        self,
+        old: Mapping[str, Any],
+        new: Mapping[str, Any],
+        *,
+        embedded: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        obj: Dict[str, Any] = {}
+
+        for k in self._keys:
+            old_val = old.get(k)
+            if old_val is None or old_val == new[k]:
+                if k not in self._diff_reserved:
+                    continue
+
+            if embedded is None:
+                obj[k] = new[k]
+            else:
+                obj[k] = new[f"_{embedded}_{k}"]
+
+        for e_name, e_cls in self._embedded.items():
+            obj[e_name] = e_cls.diff_to_json(old, new, embedded=e_name)
+
+        return obj
+
     def __str__(self) -> str:
         return self.keys
 
@@ -103,41 +125,74 @@ class IDObject:
 
 
 class User(IDObject):
-    _keys = ("name", "bot")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"name", "bot"}
 
 
 class SelfUser(User):
-    _keys = User._keys + ("email",)  # type: ignore
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"email"}
 
 
 class Channel(IDObject):
-    _keys = ("name", "user_ids", "pinned_ids")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"name", "user_ids", "pinned_ids"}
 
 
 class PlainMessage(IDObject):
-    _keys = ("author_id", "channel_id", "content", "edit_id", "pinned")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {
+            "author_id",
+            "channel_id",
+            "content",
+            "edit_id",
+            "pinned",
+        }
 
 
 class Message(IDObject):
-    _keys = ("edit_id", "channel_id", "content", "pinned")
-    _embedded = {"author": User()}
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"edit_id", "channel_id", "content", "pinned"}
+        self._embedded = {"author": User()}
 
 
 class File(IDObject):
-    _keys = ("name", "message_id", "channel_id", "mime")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"name", "message_id", "channel_id", "mime"}
 
 
 class BugReport(IDObject):
-    _keys = ("user_id", "report_body", "device_info", "automatic")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"user_id", "report_body", "device_info", "automatic"}
 
 
 class PlainApplication(IDObject):
-    _keys = ("name", "redirect_uri")
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"name", "redirect_uri"}
 
 
 class Application(IDObject):
-    _keys = ("name", "redirect_uri")
-    _embedded = {"owner": User()}
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._keys |= {"name", "redirect_uri"}
+        self._embedded = {"owner": User()}
 
 
 # singletons

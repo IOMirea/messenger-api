@@ -22,7 +22,7 @@ from typing import Any, Dict
 
 
 class Event:
-    __slots__ = ("channel_id",)
+    __slots__ = ("_payload",)
 
     def __init__(self, *, payload: Dict[str, Any]):
         self._payload = payload
@@ -39,9 +39,6 @@ class Event:
     def payload(self) -> Dict[str, Any]:
         return self._payload
 
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}>"
-
 
 class LocalEvent(Event):
     __slots__ = ("channel_id",)
@@ -56,6 +53,9 @@ class LocalEvent(Event):
                 "channel_id field of LocalEvent should not be None"
             )
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} channel_id={self.channel_id}>"
+
 
 class OuterEvent(Event):
     __slots__ = ("user_id",)
@@ -69,6 +69,9 @@ class OuterEvent(Event):
             raise RuntimeError(
                 "user_id field of OuterEvent should not be None"
             )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} user_id={self.user_id}>"
 
 
 class GlobalEvent(Event):
