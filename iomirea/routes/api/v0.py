@@ -50,13 +50,16 @@ routes = web.RouteTableDef()
 async def create_channel(req: web.Request) -> web.Response:
     query = req["body"]
 
-    recipients = set(query["recipients"] + [req["access_token"].user_id])
+    user_id = req["access_token"].user_id
+
+    recipients = set(query["recipients"] + [user_id])
 
     new_id = req.config_dict["sf_gen"].gen_id()
 
     channel = await req.config_dict["pg_conn"].fetchrow(
-        f"INSERT INTO channels (id, name, user_ids) VALUES ($1, $2, $3) RETURNING {CHANNEL}",
+        f"INSERT INTO channels (id, owner_id, name, user_ids) VALUES ($1, $2, $3, $4) RETURNING {CHANNEL}",
         new_id,
+        user_id,
         query["name"],
         recipients,
     )

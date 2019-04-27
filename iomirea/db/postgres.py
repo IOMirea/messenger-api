@@ -234,7 +234,8 @@ class Channel(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "user_ids", "pinned_ids"}
+        self._keys |= {"name", "owner_id", "user_ids", "pinned_ids"}
+        self._diff_reserved |= {"owner_id"}
 
 
 class PlainMessage(IDObject):

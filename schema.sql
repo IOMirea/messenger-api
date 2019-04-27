@@ -5,6 +5,7 @@ CREATE TABLE versions (
 
 CREATE TABLE channels (
 	id BIGINT PRIMARY KEY NOT NULL,
+	owner_id BIGINT NOT NULL,
 	name VARCHAR(128),
 	user_ids BIGINT[] NOT NULL,
 	pinned_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[]
@@ -113,6 +114,10 @@ CREATE VIEW applications_with_owner AS
   FROM applications app
   INNER JOIN users usr
   ON app.owner_id = usr.id;
+
+
+-- FOREIGN KEYS --
+ALTER TABLE channels ADD CONSTRAINT channels_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES users(id);
 
 
 -- FUNCTIONS --
