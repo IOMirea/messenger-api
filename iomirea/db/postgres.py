@@ -41,6 +41,12 @@ async def close_postgres_connection(app: aiohttp.web.Application) -> None:
 
 
 class IDObject:
+    """
+    Represents an object from database.
+    Has utility functionality allowing to fetch object from database and
+    expose required fields to user via json.
+    """
+
     def __init__(self) -> None:
         # keys to be fetched from database and sent to user
         self._keys = {"id"}
@@ -62,7 +68,15 @@ class IDObject:
 
     @property
     def keys(self) -> str:
-        """Generates a list of database query keys"""
+        """
+        Generates a string representing list of keys that should be inserted
+        into query.
+
+        Example:
+            record = await connection.fetchrow(
+                f"SELECT {MESSAGE.keys} FROM messages_with_author WHERE id = $1", 0
+            )
+        """
 
         try:
             return self._keys_str  # type: ignore
@@ -194,7 +208,7 @@ class IDObject:
         return obj
 
     def __str__(self) -> str:
-        """A shortcut for keys property"""
+        """A shortcut for keys property."""
 
         return self.keys
 

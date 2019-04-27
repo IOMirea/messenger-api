@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 from typing import Any, Callable, Awaitable, Optional, List
 
 import aiohttp
@@ -25,12 +24,18 @@ from constants import BIGINT64_MAX_POSITIVE
 
 
 class Check:
+    """Base check."""
+
     ERROR_TEMPLATE = "Check {check} failed"
 
     async def check(self, value: Any, app: aiohttp.web.Application) -> bool:
+        """Performs check on value. Should be overriden."""
+
         raise NotImplementedError
 
     def error(self, value: Any) -> str:
+        """Constructs error string from template."""
+
         return self.ERROR_TEMPLATE.format_map({"check": self, "value": value})
 
     def __str__(self) -> str:

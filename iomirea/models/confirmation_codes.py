@@ -25,6 +25,8 @@ import aioredis
 
 
 class ConfirmationCode:
+    """A base confirmation code."""
+
     __slots__ = ("user_id", "_code", "_conn")
 
     def __init__(
@@ -37,16 +39,22 @@ class ConfirmationCode:
 
     @staticmethod
     def code_type() -> str:
+        """Returns a string used as prefix to store token in database."""
+
         raise NotImplementedError
 
     @staticmethod
     def life_time() -> int:
+        """Returns token life time in seconds."""
+
         raise NotImplementedError
 
     @classmethod
     async def from_string(
         cls, string: str, conn: aioredis.ConnectionsPool
     ) -> ConfirmationCode:
+        """Constructs code object from string and checks it."""
+
         stored = await conn.execute("GET", f"{cls.code_type()}_code:{string}")
 
         if stored is None:
@@ -58,6 +66,8 @@ class ConfirmationCode:
     async def from_data(
         cls, user_id: int, conn: aioredis.ConnectionsPool
     ) -> ConfirmationCode:
+        """Constructs code object from data and saves it."""
+
         code = cls(user_id, uuid.uuid4().hex, conn)
 
         await code._save()
@@ -65,6 +75,8 @@ class ConfirmationCode:
         return code
 
     async def _save(self) -> None:
+        """Writes code to database (overwrites if called several times)."""
+
         await self._conn.execute(
             "SETEX",
             f"{self.code_type()}_code:{self._code}",
@@ -73,6 +85,8 @@ class ConfirmationCode:
         )
 
     async def delete(self) -> None:
+        """Deletes code from database if exists."""
+
         await self._conn.execute(
             "DEL", f"{self.code_type()}_code:{self._code}"
         )
@@ -85,6 +99,8 @@ class ConfirmationCode:
 
 
 class EmailConfirmationCode(ConfirmationCode):
+    """Email confirmation code."""
+
     @staticmethod
     def code_type() -> str:
         return "email_confirm"
@@ -95,6 +111,8 @@ class EmailConfirmationCode(ConfirmationCode):
 
 
 class PasswordResetCode(ConfirmationCode):
+    """Password restore confirmation code."""
+
     @staticmethod
     def code_type() -> str:
         return "password_reset"

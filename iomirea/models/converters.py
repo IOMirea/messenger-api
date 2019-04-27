@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import math
 
 import typing
@@ -45,6 +44,8 @@ OptionalInputType = typing.Optional[InputType]
 
 
 class Converter:
+    """Base converter."""
+
     ERROR_TEMPLATE = "Failed to convert parameter to {type}: {error.__class__.__name__}({error})"
     SUPPORTED_TYPES: typing.Tuple[typing.Any, ...] = (str, int, float, bool)
 
@@ -60,6 +61,11 @@ class Converter:
     async def convert(
         self, value: OptionalInputType, app: aiohttp.web.Application
     ) -> typing.Any:
+        """
+        Used to convert value to converter type. Manages internal checks and
+        should not be overriden.
+        """
+
         if type(value) not in self.SUPPORTED_TYPES:
             raise BadArgument(
                 self.error(
@@ -83,6 +89,8 @@ class Converter:
     async def _convert(
         self, value: InputType, app: aiohttp.web.Application
     ) -> typing.Any:
+        """Actual convert function that should be overriden."""
+
         raise NotImplementedError
 
     @property
@@ -113,6 +121,16 @@ async def convert_map(
     app: aiohttp.web.Application,
     location: str = "body",
 ) -> typing.Dict[str, typing.Any]:
+    """
+    Converts mapping of elements generating new map with the same keys.
+    Supports recursive maps/lists conversion.
+
+    Propperly indicates problematic value in case of error with ConvertError.
+
+    Known issues:
+        Allows type implicit type casts, e.g: 1 can be treated as string
+    """
+
     result = {}
 
     if not isinstance(query, typing.Mapping):
@@ -172,6 +190,9 @@ class ID(Integer):
         super().__init__(**kwargs)
 
 
+Snowflake = ID
+
+
 class Number(Converter):
     async def _convert(
         self, value: InputType, app: aiohttp.web.Application
@@ -220,6 +241,11 @@ class Boolean(Converter):
 
 
 class List(Converter):
+    """
+    Converter for list of elements. Enforces all items to be of the same type.
+    Does not support map as container yet.
+    """
+
     SUPPORTED_TYPES = (str, list)
 
     def __init__(

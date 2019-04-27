@@ -57,6 +57,8 @@ class CloseCode(enum.Enum):
 
 
 class Listener:
+    """Manages a single websocket."""
+
     __slots__ = ("ws", "user_id", "_emitter", "_last_hb")
 
     def __init__(self, ws: web.WebSocketResponse, emitter: EventEmitter):
@@ -70,6 +72,8 @@ class Listener:
     async def notify(
         self, *, opcode: Opcode, data: Optional[Any] = None
     ) -> bool:
+        """Sends data to websocket."""
+
         try:
             if data is None:
                 await self.ws.send_json({"op": opcode.value})
@@ -83,6 +87,8 @@ class Listener:
         return True
 
     async def event_notify(self, event: Event) -> bool:
+        """Sends dispatch message to websocket with event payload."""
+
         try:
             await self.ws.send_json(
                 {
@@ -99,6 +105,8 @@ class Listener:
         return True
 
     async def listen(self) -> None:
+        """Starts handling websocket messages and launches heartbeat."""
+
         await self.notify(
             opcode=Opcode.HELLO,
             data={"heartbeat_interval": HEARTBEAT_INTERVAL},
@@ -114,6 +122,8 @@ class Listener:
                 await self.close(code=CloseCode.BAD_PAYLOAD)
 
     async def _handle(self, data: Dict[str, Any]) -> None:
+        """Handles message from websocket."""
+
         server_log.debug(f"Received ws: {data}")
 
         op = data["op"]
@@ -139,6 +149,11 @@ class Listener:
             await self._emitter.add_listener(self)
 
     async def _check_hb(self) -> None:
+        """
+        A task that checks for user heartbeat responses every
+        HEARTBEAT_INTERVAL milliseconds with one tenth precision.
+        """
+
         interval = HEARTBEAT_INTERVAL / 1000
         response_error_treshold = interval / 10
 
@@ -163,6 +178,8 @@ class Listener:
         message: bytes = b"",
         cleanup: bool = True,
     ) -> None:
+        """Closes connection with websocket."""
+
         if cleanup:
             await self._emitter.remove_listener(self)
 
@@ -173,23 +190,37 @@ class Listener:
 
 
 class EventEmitter:
+    """Websocket manager responsible for event delivery."""
+
     def __init__(self, app: web.Application):
         self._app = app
+
+        # maps users to all their channels
         self._channels: Dict[int, Set[int]] = {}
+
+        # maps channels to all their users
         self._users: Dict[int, Set[int]] = {}
+
+        # maps users to all their listeners
         self._listeners: Dict[int, Set[Listener]] = {}
 
+        # set to True when closing to prevent new connections
         self._closing = False
+
         self._lock = asyncio.Lock()
 
     @staticmethod
     async def setup_emitter(app: web.Application) -> None:
+        """Creates emitter property in application."""
+
         emitter = EventEmitter(app)
 
         app["emitter"] = emitter
         app.on_cleanup.append(emitter.close)
 
     def emit(self, event: Event) -> None:
+        """Emits event handling it's scope."""
+
         if isinstance(event, LocalEvent):
             task = self.notify_channel(event)
         elif isinstance(event, OuterEvent):
@@ -197,7 +228,7 @@ class EventEmitter:
         elif isinstance(event, GlobalEvent):
             task = self.notify_everyone(event)
         else:
-            server_log.info(f"Emitter: unknown event scope: {event}")
+            server_log.info(f"Emitter: unknown event type: {event}")
 
             return
 
@@ -205,6 +236,8 @@ class EventEmitter:
         asyncio.create_task(task)
 
     async def notify_channel(self, event: LocalEvent) -> None:
+        """Dispatches event for all users in channel of event."""
+
         server_log.debug(f"Notifying channel {event.channel_id}: {event}")
 
         to_close = []
@@ -219,6 +252,10 @@ class EventEmitter:
             await listener.close()
 
     async def notify_channels(self, event: OuterEvent) -> None:
+        """
+        Dispatches event for all users sharing channel with user of event.
+        """
+
         server_log.debug(f"Notifying user {event.user_id} channels: {event}")
 
         to_close = []
@@ -234,6 +271,8 @@ class EventEmitter:
             await listener.close()
 
     async def notify_everyone(self, event: GlobalEvent) -> None:
+        """Discpatches event for all connected users."""
+
         server_log.debug(f"Notifying everyone: {event}")
 
         to_close = []
@@ -248,6 +287,8 @@ class EventEmitter:
             await listener.close()
 
     async def create_listener(self, req: web.Request) -> Optional[Listener]:
+        """Creates listener (websocket connection)."""
+
         ws = web.WebSocketResponse()
 
         await ws.prepare(req)
@@ -260,6 +301,8 @@ class EventEmitter:
         return Listener(ws, self)
 
     async def add_listener(self, listener: Listener) -> None:
+        """Registers listener allowing it to recieve events."""
+
         if listener.user_id is None:
             server_log.warn(
                 f"Emitter: unable to add listener, user_id is None"
@@ -285,6 +328,8 @@ class EventEmitter:
                 self._listeners[listener.user_id] = {listener}
 
     async def remove_listener(self, listener: Listener) -> None:
+        """Removes registered listener stopping sending events to it."""
+
         if listener.user_id is None:  # user did not identify
             return
 
@@ -317,6 +362,8 @@ class EventEmitter:
         code: CloseCode = CloseCode.NORMAL,
         message: bytes = b"",
     ) -> None:
+        """Stops sending events and closes all connections."""
+
         self._closing = True
 
         for listeners in self._listeners.values():

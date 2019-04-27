@@ -22,6 +22,8 @@ from typing import Any, Dict
 
 
 class Event:
+    """A base event."""
+
     __slots__ = ("_payload",)
 
     def __init__(self, *, payload: Dict[str, Any]):
@@ -29,6 +31,8 @@ class Event:
         self._parse_payload()
 
     def _parse_payload(self) -> None:
+        """Extracts required data from payload."""
+
         raise NotImplementedError
 
     @property
@@ -41,6 +45,8 @@ class Event:
 
 
 class LocalEvent(Event):
+    """Event that is sent to all users in channel."""
+
     __slots__ = ("channel_id",)
 
     def __init__(self, **kwargs: Any):
@@ -58,6 +64,8 @@ class LocalEvent(Event):
 
 
 class OuterEvent(Event):
+    """Event that is sent to all users that share channels with given user."""
+
     __slots__ = ("user_id",)
 
     def __init__(self, **kwargs: Any):
@@ -75,7 +83,7 @@ class OuterEvent(Event):
 
 
 class GlobalEvent(Event):
-    pass
+    """Event that is sent to all users."""
 
 
 class CHANNEL_UPDATE(LocalEvent):
