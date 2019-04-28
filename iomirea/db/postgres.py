@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List, Mapping, Set
+from typing import Dict, Any, Optional, List, Mapping, Tuple
 
 import asyncpg
 import aiohttp
@@ -49,7 +49,7 @@ class IDObject:
 
     def __init__(self) -> None:
         # keys to be fetched from database and sent to user
-        self._keys = {"id"}
+        self._keys: Tuple[str, ...] = ("id",)
 
         # objects to be embedded into keys
         # embedded objects are flattened using syntax:
@@ -59,18 +59,18 @@ class IDObject:
 
         # keys that should always be present in diff calculation
         # note: if there is no diff, empty dict will be returned
-        self._diff_reserved = {"id"}
+        self._diff_reserved: Tuple[str, ...] = ("id",)
 
         # keys that should be ignored while checking if object was modified or
         # not. They are still included into result unless mentioned in
         # _diff_reserved. For exaple, message edit snowflake
-        self._diff_ignored: Set[str] = set()
+        self._diff_ignored: Tuple[str, ...] = ()
 
     @property
     def keys(self) -> str:
         """
-        Generates a string representing list of keys that should be inserted
-        into query.
+        Generates a string representing list of keys that should be used in
+        query.
 
         Example:
             record = await connection.fetchrow(
@@ -87,7 +87,7 @@ class IDObject:
 
     def get_keys(self, *, embedded: Optional[str] = None) -> List[str]:
         """
-        Returns a flattened list of keys.
+        Returns a flattened list of keys that should be used in query.
         Unlike keys property does not save state.
         """
 
@@ -110,6 +110,54 @@ class IDObject:
                 keys.append(key)
 
         return keys
+
+    def update_query_for(
+        self,
+        table_name: str,
+        object_id: int,
+        update_keys: List[str],
+        *,
+        returning: bool = True,
+    ) -> str:
+        """
+        Generates a postgresql update query for given table with id field
+        matching object_id parameter.
+
+        Resulting query updates columns if any of provided values differ.
+        Query returns 1 or self fields (depending on returning flag).
+        Otherwise query returns nothing.
+
+        Example:
+            channel_id = 0
+            keys = ["name"]
+
+            row = await req.config_dict["pg_conn"].fetchrow(
+                CHANNEL.update_query_for(
+                    "channels", channel_id, keys
+                ),
+                "new channel name",
+            )
+        """
+
+        keys = []
+
+        for key in update_keys:
+            if key not in self._keys:
+                raise ValueError(f"Unknown key: {key}")
+
+            keys.append(key)
+
+        to_set_keys = keys + list(self._diff_ignored)
+        to_set = ",".join(f"{k}=${i + 1}" for i, k in enumerate(to_set_keys))
+
+        conditions = " OR ".join(f"{k}!=${i + 1}" for i, k in enumerate(keys))
+
+        return (
+            f"UPDATE {table_name} "
+            f"SET {to_set} "
+            f"WHERE id={object_id} AND {conditions} "
+            f"RETURNING {self if returning else 1}"
+        )
 
     def to_json(
         self, record: Mapping[str, Any], *, _embedded: Optional[str] = None
@@ -220,75 +268,75 @@ class User(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "bot"}
+        self._keys += ("name", "bot")
 
 
 class SelfUser(User):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"email"}
+        self._keys += ("email",)
 
 
 class Channel(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "owner_id", "user_ids", "pinned_ids"}
-        self._diff_reserved |= {"owner_id"}
+        self._keys += ("name", "owner_id", "user_ids", "pinned_ids")
+        self._diff_reserved += ("owner_id",)
 
 
 class PlainMessage(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {
+        self._keys += (
             "author_id",
             "channel_id",
             "content",
             "edit_id",
             "pinned",
-        }
-        self._diff_reserved |= {"channel_id"}
-        self._diff_ignored = {"edit_id"}
+        )
+        self._diff_reserved += ("channel_id",)
+        self._diff_ignored = ("edit_id",)
 
 
 class Message(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"edit_id", "channel_id", "content", "pinned"}
+        self._keys += ("edit_id", "channel_id", "content", "pinned")
         self._embedded = {"author": User()}
-        self._diff_reserved |= {"channel_id"}
-        self._diff_ignored = {"edit_id"}
+        self._diff_reserved += ("channel_id",)
+        self._diff_ignored = ("edit_id",)
 
 
 class File(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "message_id", "channel_id", "mime"}
+        self._keys += ("name", "message_id", "channel_id", "mime")
 
 
 class BugReport(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"user_id", "report_body", "device_info", "automatic"}
+        self._keys += ("user_id", "report_body", "device_info", "automatic")
 
 
 class PlainApplication(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "redirect_uri"}
+        self._keys += ("name", "redirect_uri")
 
 
 class Application(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys |= {"name", "redirect_uri"}
+        self._keys += ("name", "redirect_uri")
         self._embedded = {"owner": User()}
 
 

@@ -92,14 +92,14 @@ async def edit_channel(req: web.Request) -> web.Response:
     )
 
     row = await req.config_dict["pg_conn"].fetchrow(
-        f"UPDATE channels SET name = $1 WHERE id = $2 RETURNING {CHANNEL}",
+        CHANNEL.update_query_for("channels", channel_id, req["body"].keys()),
         req["body"]["name"],
-        channel_id,
     )
 
+    if row is None:
+        raise web.HTTPNotModified
+
     diff = CHANNEL.diff_to_json(old_row, row)
-    if not diff:
-        raise web.HTTPNotModified()
 
     req.config_dict["emitter"].emit(events.CHANNEL_UPDATE(payload=diff))
 
@@ -187,34 +187,27 @@ async def create_message(req: web.Request) -> web.Response:
 async def patch_message(req: web.Request) -> web.Response:
     message_id = req["match_info"]["message_id"]
 
-    update_keys = []
-    for key, value in req["body"].items():
-        if value is not None:
-            update_keys.append(key)
-
-    if not update_keys:
+    params = [k for k, v in req["body"].items() if v is not None]
+    if not params:
         raise web.HTTPNotModified()
 
-    update_keys_list = ",".join(
-        f"{k} = ${i + 1}" for i, k in enumerate(update_keys + ["edit_id"])
-    )
-
-    # TODO: optimize number of queries
-    await req.config_dict["pg_conn"].fetch(
-        f"UPDATE messages SET {update_keys_list} WHERE id = ${len(update_keys) + 2}",
-        *[req["body"][k] for k in update_keys],
+    record = await req.config_dict["pg_conn"].fetchval(
+        MESSAGE.update_query_for(
+            "messages", message_id, params, returning=False
+        ),
+        *params,
         req.config_dict["sf_gen"].gen_id(),
-        message_id,
     )
 
+    if record is None:
+        raise web.HTTPNotModified
+
+    # FIXME: reduce number of queries!!! (3 here)
     new_row = await req.config_dict["pg_conn"].fetchrow(
         f"SELECT {MESSAGE} FROM messages_with_author WHERE id = $1", message_id
     )
 
     diff = MESSAGE.diff_to_json(req["message"], new_row)
-
-    if not diff:
-        raise web.HTTPNotModified
 
     req.config_dict["emitter"].emit(events.MESSAGE_UPDATE(payload=diff))
 
