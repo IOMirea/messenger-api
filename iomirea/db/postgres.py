@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List, Mapping, Tuple
+from typing import Dict, Any, Optional, List, Mapping, Tuple, Iterable
 
 import asyncpg
 import aiohttp
@@ -115,7 +115,7 @@ class IDObject:
         self,
         table_name: str,
         object_id: int,
-        update_keys: List[str],
+        update_keys: Iterable[str],
         *,
         returning: bool = True,
     ) -> str:

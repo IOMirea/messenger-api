@@ -187,15 +187,15 @@ async def create_message(req: web.Request) -> web.Response:
 async def patch_message(req: web.Request) -> web.Response:
     message_id = req["match_info"]["message_id"]
 
-    params = [k for k, v in req["body"].items() if v is not None]
+    params = {k: v for k, v in req["body"].items() if v is not None}
     if not params:
         raise web.HTTPNotModified()
 
     record = await req.config_dict["pg_conn"].fetchval(
         MESSAGE.update_query_for(
-            "messages", message_id, params, returning=False
+            "messages", message_id, params.keys(), returning=False
         ),
-        *params,
+        *params.values(),
         req.config_dict["sf_gen"].gen_id(),
     )
 
