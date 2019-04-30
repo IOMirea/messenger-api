@@ -139,6 +139,72 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
     raise web.HTTPNoContent()
 
 
+@routes.get(endpoints_public.CHANNEL_PINS)
+@helpers.parse_token
+@access.channel
+async def get_pins(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+
+    async with req.config_dict["pg_conn"].acquire() as conn:
+        async with conn.transaction():
+            pin_ids = await conn.fetchval(
+                "SELECT pinned_ids FROM channels WHERE id = $1", channel_id
+            )
+
+        records = await conn.fetch(
+            f"SELECT {MESSAGE} FROM messages_with_author WHERE id = ANY($1)",
+            pin_ids,
+        )
+
+    return web.json_response([MESSAGE.to_json(record) for record in records])
+
+
+@routes.put(endpoints_public.CHANNEL_PIN)
+@helpers.parse_token
+@access.channel
+async def add_pin(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    message_id = req["match_info"]["message_id"]
+
+    await ensure_existance(req, "messages", message_id, "Message")
+
+    async with req.config_dict["pg_conn"].acquire() as conn:
+        async with conn.transaction():
+            await conn.fetch(
+                "UPDATE channels SET pinned_ids = array_append(pinned_ids, $1) WHERE id = $2 AND NOT $1 = ANY(pinned_ids)",
+                message_id,
+                channel_id,
+            )
+            await conn.fetch(
+                "UPDATE messages SET pinned = true WHERE id = $1", message_id
+            )
+
+    raise web.HTTPNoContent()
+
+
+@routes.delete(endpoints_public.CHANNEL_PIN)
+@helpers.parse_token
+@access.channel
+async def remove_pin(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    message_id = req["match_info"]["message_id"]
+
+    await ensure_existance(req, "messages", message_id, "Message")
+
+    async with req.config_dict["pg_conn"].acquire() as conn:
+        async with conn.transaction():
+            await conn.fetch(
+                "UPDATE channels SET pinned_ids = array_remove(pinned_ids, $1) WHERE id = $2",
+                message_id,
+                channel_id,
+            )
+            await conn.fetch(
+                "UPDATE messages SET pinned = false WHERE id = $1", message_id
+            )
+
+    raise web.HTTPNoContent()
+
+
 @routes.post(endpoints_public.MESSAGES)
 @helpers.parse_token
 @access.channel
@@ -257,20 +323,6 @@ async def get_messages(req: web.Request) -> web.Response:
         channel_id,
         limit,
         offset,
-    )
-
-    return web.json_response([MESSAGE.to_json(record) for record in records])
-
-
-@routes.get(endpoints_public.CHANNEL_PINS)
-@helpers.parse_token
-@access.channel
-async def get_pins(req: web.Request) -> web.Response:
-    channel_id = req["match_info"]["channel_id"]
-
-    records = await req.config_dict["pg_conn"].fetch(
-        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id=$1 AND pinned=true",
-        channel_id,
     )
 
     return web.json_response([MESSAGE.to_json(record) for record in records])
