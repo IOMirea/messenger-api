@@ -170,6 +170,16 @@ async def add_pin(req: web.Request) -> web.Response:
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
+            if (
+                await conn.fetchval(
+                    "SELECT cardinality(pinned_ids) FROM channels WHERE id = $1",
+                    channel_id,
+                )
+                >= 50
+            ):
+
+                raise web.HTTPBadRequest(reason="Too many pins (>= 50)")
+
             await conn.fetch(
                 "UPDATE channels SET pinned_ids = array_append(pinned_ids, $1) WHERE id = $2 AND NOT $1 = ANY(pinned_ids)",
                 message_id,
