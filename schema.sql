@@ -22,6 +22,24 @@ CREATE TABLE users (
 	verified BOOL NOT NULL DEFAULT false
 );
 
+
+/* Permissions bitfield
+ * 0:   modify channel
+ * 1:   invite members
+ * 2:   kick members
+ * 3:   ban members
+ * 4:   modify members
+ */
+
+CREATE TABLE channel_permissions (
+	user_id BIGINT NOT NULL,
+	channel_id BIGINT NOT NULL,
+	permissions BIT VARYING NOT NULL DEFAULT 0::bit,
+
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
+);
+
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
 	owner_id BIGING NOT NULL,

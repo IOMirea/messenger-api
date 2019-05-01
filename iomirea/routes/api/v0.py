@@ -131,10 +131,20 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
 
     await ensure_existance(req, "users", user_id, "User")
 
-    if not await req.config_dict["pg_conn"].fetchval(
-        "SELECT * FROM add_channel_user($1, $2)", channel_id, user_id
-    ):
-        raise web.HTTPNotModified(reason="Is user already in channel?")
+    async with req.config_dict["pg_conn"].acquire() as conn:
+        async with conn.transaction():
+            success = await conn.fetchval(
+                "SELECT * FROM add_channel_user($1, $2)", channel_id, user_id
+            )
+
+            if not success:
+                raise web.HTTPNotModified(reason="Is user already in channel?")
+
+            await conn.fetch(
+                "INSERT INTO channel_permissions (channel_id, user_id) VALUES ($1, $2)",
+                channel_id,
+                user_id,
+            )
 
     raise web.HTTPNoContent()
 
