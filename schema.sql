@@ -34,7 +34,7 @@ CREATE TABLE users (
 CREATE TABLE channel_permissions (
 	user_id BIGINT NOT NULL,
 	channel_id BIGINT NOT NULL,
-	permissions BIT VARYING NOT NULL DEFAULT 0::bit,
+	permissions BIT VARYING NOT NULL DEFAULT 0::bit(16),
 
 	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
@@ -165,3 +165,50 @@ BEGIN
         RETURN true;
 END;
 $success$ LANGUAGE plpgsql;
+
+CREATE FUNCTION remove_channel_user(cid BIGINT, uid BIGINT) RETURNS BOOLEAN
+AS $success$
+DECLARE user_channels BIGINT[];
+BEGIN
+        SELECT channel_ids INTO user_channels FROM users WHERE id = uid;
+
+        IF user_channels IS NULL THEN
+                RAISE EXCEPTION 'Not such user: %', uid;
+                RETURN false;
+        END IF;
+
+        IF NOT(cid = ANY(user_channels)) THEN
+                RETURN false;
+        END IF;
+
+        IF NOT (SELECT exists(SELECT 1 FROM channels WHERE id = cid)) THEN
+                RAISE EXCEPTION 'No such channel: %', cid;
+                RETURN false;
+        END IF;
+
+        UPDATE users SET channel_ids = array_remove(channel_ids, cid) WHERE id = uid;
+        UPDATE channels SET user_ids = array_remove(user_ids, uid) WHERE id = cid;
+
+        RETURN true;
+END;
+$success$ LANGUAGE plpgsql;
+
+CREATE FUNCTION has_permissions(cid BIGINT, uid BIGINT, perms BIT VARYING) RETURNS BOOLEAN
+AS $has_permissions$
+DECLARE selected_perms BIT VARYING;
+BEGIN
+	IF (SELECT owner_id FROM channels WHERE id = cid) = uid THEN
+		RETURN true;
+	END IF;
+
+	SELECT permissions INTO selected_perms
+	FROM channel_permissions
+	WHERE channel_id = cid AND user_id = uid;
+
+	IF NOT FOUND THEN
+		RETURN false;
+	END IF;
+
+	RETURN perms & selected_perms = perms;
+END;
+$has_permissions$ LANGUAGE plpgsql;

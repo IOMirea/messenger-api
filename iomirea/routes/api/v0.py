@@ -30,6 +30,7 @@ from utils.db import ensure_existance
 from models import converters, checks
 from models import events
 from security import access
+from permissions import Permissions
 
 
 routes = web.RouteTableDef()
@@ -142,6 +143,49 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
 
             await conn.fetch(
                 "INSERT INTO channel_permissions (channel_id, user_id) VALUES ($1, $2)",
+                channel_id,
+                user_id,
+            )
+
+    raise web.HTTPNoContent()
+
+
+@routes.delete(endpoints_public.CHANNEL_RECIPIENT)
+@helpers.parse_token
+@access.channel
+async def remove_channel_recipient(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    user_id = req["match_info"]["user_id"]
+
+    await ensure_existance(req, "users", user_id, "User")
+
+    async with req.config_dict["pg_conn"].acquire() as conn:
+        async with conn.transaction():
+            # TODO: unify this
+            if req["access_token"].user_id != user_id:  # user kicks other user
+                has_permission = await conn.fetchval(
+                    "SELECT * FROM has_permissions($1, $2, $3)",
+                    channel_id,
+                    req["access_token"].user_id,
+                    asyncpg.BitString.from_int(Permissions.KICK_MEMBERS, 16),
+                )
+
+                if not has_permission:
+                    raise web.HTTPForbidden(
+                        reason="You do not have permission to kick members"
+                    )
+
+            success = await conn.fetchval(
+                "SELECT * FROM remove_channel_user($1, $2)",
+                channel_id,
+                user_id,
+            )
+
+            if not success:
+                raise web.HTTPNotModified(reason="Is user in channel?")
+
+            await conn.fetch(
+                "DELETE FROM channel_permissions WHERE channel_id = $1 AND user_id = $2",
                 channel_id,
                 user_id,
             )
