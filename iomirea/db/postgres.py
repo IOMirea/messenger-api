@@ -296,6 +296,7 @@ class PlainMessage(IDObject):
             "content",
             "edit_id",
             "pinned",
+            "type",
         )
         self._diff_reserved += ("channel_id",)
         self._diff_ignored = ("edit_id",)
@@ -305,7 +306,7 @@ class Message(IDObject):
     def __init__(self) -> None:
         super().__init__()
 
-        self._keys += ("edit_id", "channel_id", "content", "pinned")
+        self._keys += ("edit_id", "channel_id", "content", "pinned", "type")
         self._embedded = {"author": User()}
         self._diff_reserved += ("channel_id",)
         self._diff_ignored = ("edit_id",)

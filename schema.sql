@@ -1,3 +1,4 @@
+-- TABLES --
 CREATE TABLE versions (
 	version SMALLINT NOT NULL,
 	name TEXT PRIMARY KEY NOT NULL
@@ -50,6 +51,16 @@ CREATE TABLE applications (
 	FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+
+/* Message types
+ * 0: text
+ * 1: channel name update
+ * 2: channel avatar update
+ * 3: recipient add
+ * 4: recipient remove
+ * 5: channel create
+ */
+
 CREATE TABLE messages (
 	id BIGINT PRIMARY KEY NOT NULL,
 	edit_id BIGINT,
@@ -59,31 +70,11 @@ CREATE TABLE messages (
 	encrypted BOOL NOT NULL DEFAULT false,
 	pinned BOOL NOT NULL DEFAULT false,
 	deleted BOOL NOT NULL DEFAULT false,
+	type SMALLINT NOT NULL DEFAULT 0,
 	
 	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE RESTRICT,
 	FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
 );
-
-CREATE INDEX messages_channel_index ON messages(channel_id);
-
-CREATE VIEW existing_messages AS SELECT * FROM messages WHERE deleted = false;
-
-CREATE VIEW messages_with_author AS
-  SELECT
-    msg.id,
-    msg.edit_id,
-    msg.channel_id,
-    msg.content,
-    msg.pinned,
-
-    usr.id AS _author_id,
-    usr.name AS _author_name,
-    usr.bot AS _author_bot
-  FROM existing_messages msg
-  INNER JOIN users usr
-  ON msg.author_id = usr.id;
-
-CREATE UNIQUE users_unique_email_index ON users (email);
 
 CREATE TABLE files (
 	id BIGINT PRIMARY KEY NOT NULL,
@@ -117,7 +108,44 @@ CREATE TABLE tokens (
 	FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE
 );
 
+
+-- INDEXES --
+CREATE INDEX messages_channel_index ON messages(channel_id);
+
+CREATE UNIQUE users_unique_email_index ON users (email);
+
 CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
+
+
+-- VIEWS --
+CREATE VIEW existing_messages AS
+	SELECT
+		id,
+		edit_id,
+		channel_id,
+		author_id,
+		content,
+		encrypted,
+		pinned,
+		type
+	FROM messages
+	WHERE deleted = false;
+
+CREATE VIEW messages_with_author AS
+	SELECT
+		msg.id,
+		msg.edit_id,
+		msg.channel_id,
+		msg.content,
+		msg.pinned,
+		msg.type,
+
+		usr.id AS _author_id,
+		usr.name AS _author_name,
+		usr.bot AS _author_bot
+	FROM existing_messages msg
+	INNER JOIN users usr
+	ON msg.author_id = usr.id;
 
 CREATE VIEW applications_with_owner AS
   SELECT
