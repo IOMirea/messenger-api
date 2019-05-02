@@ -55,21 +55,5 @@ class Migration(PGMigration):
               FROM existing_messages msg
               INNER JOIN users usr
               ON msg.author_id = usr.id;
-
-            CREATE OR REPLACE VIEW messages_with_author AS
-              SELECT
-                msg.id,
-                msg.edit_id,
-                msg.channel_id,
-                msg.content,
-                msg.pinned,
-                msg.type,
-
-                usr.id AS _author_id,
-                usr.name AS _author_name,
-                usr.bot AS _author_bot
-              FROM existing_messages msg
-              INNER JOIN users usr
-              ON msg.author_id = usr.id;
             """
         )
