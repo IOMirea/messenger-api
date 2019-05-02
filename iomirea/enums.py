@@ -16,8 +16,21 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import enum
 
-class Permissions:
+
+class MessageTypes(enum.Enum):
+    TEXT = 0
+    CHANNEL_CREATE = 1
+    CHANNEL_NAME_UPDATE = 2
+    CHANNEL_ICON_UPDATE = 3
+    CHANNEL_PIN_ADD = 4
+    CHANNEL_PIN_REMOVE = 5
+    RECIPIENT_ADD = 6
+    RECIPIENT_REMOVE = 7
+
+
+class Permissions(enum.Enum):
     MODIFY_CHANNEL = 1
     INVITE_MEMBERS = 2
     KICK_MEMBERS = 4

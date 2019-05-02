@@ -54,11 +54,13 @@ CREATE TABLE applications (
 
 /* Message types
  * 0: text
- * 1: channel name update
- * 2: channel avatar update
- * 3: recipient add
- * 4: recipient remove
- * 5: channel create
+ * 1: channel create
+ * 2: channel name update
+ * 3: channel icon update
+ * 4: channel pin add
+ * 5: channel pin remove
+ * 6: recipient add
+ * 7: recipient remove
  */
 
 CREATE TABLE messages (
@@ -189,6 +191,7 @@ BEGIN
 
         UPDATE users SET channel_ids = array_append(channel_ids, cid) WHERE id = uid;
         UPDATE channels SET user_ids = array_append(user_ids, uid) WHERE id = cid;
+	INSERT INTO channel_permissions (channel_id, user_id) VALUES (cid, uid);
 
         RETURN true;
 END;
@@ -216,6 +219,7 @@ BEGIN
 
         UPDATE users SET channel_ids = array_remove(channel_ids, cid) WHERE id = uid;
         UPDATE channels SET user_ids = array_remove(user_ids, uid) WHERE id = cid;
+	DELETE FROM channel_permissions WHERE channel_id = cid AND user_id = uid;
 
         RETURN true;
 END;
