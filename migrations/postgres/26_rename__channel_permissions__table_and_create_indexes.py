@@ -78,7 +78,7 @@ class Migration(PGMigration):
 
               UPDATE users SET channel_ids = array_remove(channel_ids, cid) WHERE id = uid;
               UPDATE channels SET user_ids = array_remove(user_ids, uid) WHERE id = cid;
-              DELETE FROM channel_settingss WHERE channel_id = cid AND user_id = uid;
+              DELETE FROM channel_settings WHERE channel_id = cid AND user_id = uid;
 
               RETURN true;
             END;
