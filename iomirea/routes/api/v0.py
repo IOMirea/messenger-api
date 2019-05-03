@@ -103,6 +103,21 @@ async def edit_channel(req: web.Request) -> web.Response:
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
+            # TODO: unify permission checks
+            has_permission = await conn.fetchval(
+                "SELECT * FROM has_permissions($1, $2, $3)",
+                channel_id,
+                req["access_token"].user_id,
+                asyncpg.BitString.from_int(
+                    Permissions.MODIFY_CHANNEL.value, 16
+                ),
+            )
+
+            if not has_permission:
+                raise web.HTTPForbidden(
+                    reason="You do not have permission to modify channel"
+                )
+
             old_channel = await conn.fetchrow(
                 f"SELECT {CHANNEL} FROM channels WHERE id = $1", channel_id
             )
@@ -197,7 +212,7 @@ async def remove_channel_recipient(req: web.Request) -> web.Response:
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
-            # TODO: unify this
+            # TODO: unify permission checks
             if req["access_token"].user_id != user_id:  # user kicks other user
                 has_permission = await conn.fetchval(
                     "SELECT * FROM has_permissions($1, $2, $3)",
