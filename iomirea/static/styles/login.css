@@ -41,6 +41,11 @@ div{
 	text-decoration: none;
 }
 
+.link:hover{
+	text-decoration:underline;
+}
+
+
 #linkt{
 	margin-top:-15px;
 	font-size: 12px;
