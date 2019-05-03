@@ -196,7 +196,9 @@ async def remove_channel_recipient(req: web.Request) -> web.Response:
                     "SELECT * FROM has_permissions($1, $2, $3)",
                     channel_id,
                     req["access_token"].user_id,
-                    asyncpg.BitString.from_int(Permissions.KICK_MEMBERS, 16),
+                    asyncpg.BitString.from_int(
+                        Permissions.KICK_MEMBERS.value, 16
+                    ),
                 )
 
                 if not has_permission:

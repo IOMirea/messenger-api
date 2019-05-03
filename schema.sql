@@ -32,7 +32,7 @@ CREATE TABLE users (
  * 4:   modify members
  */
 
-CREATE TABLE channel_permissions (
+CREATE TABLE channel_settings (
 	user_id BIGINT NOT NULL,
 	channel_id BIGINT NOT NULL,
 	permissions BIT VARYING NOT NULL DEFAULT 0::bit(16),
@@ -114,9 +114,13 @@ CREATE TABLE tokens (
 -- INDEXES --
 CREATE INDEX messages_channel_index ON messages(channel_id);
 
-CREATE UNIQUE users_unique_email_index ON users (email);
+CREATE UNIQUE users_unique_email_index ON users(email);
 
 CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
+
+CREATE INDEX channel_permissions_user_id_index ON channel_settings(user_id);
+
+CREATE INDEX channel_permissions_channel_id_index ON channel_settings(channel_id);
 
 
 -- VIEWS --
