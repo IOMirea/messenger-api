@@ -47,9 +47,6 @@ div{
 	line-height: 1.6;
 }
 
-.link:hover{
-	text-decoration:underline;
-}
 
 .link:visited{
 	color: #0000EE
