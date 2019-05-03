@@ -16,30 +16,12 @@ CREATE TABLE users (
 	id BIGINT PRIMARY KEY NOT NULL,
 	name VARCHAR(128) NOT NULL,
 	channel_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
-	last_read_message_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
 	bot BOOL NOT NULL,
 	email TEXT NOT NULL UNIQUE,
 	password BYTEA NOT NULL,
 	verified BOOL NOT NULL DEFAULT false
 );
 
-
-/* Permissions bitfield
- * 0:   modify channel
- * 1:   invite members
- * 2:   kick members
- * 3:   ban members
- * 4:   modify members
- */
-
-CREATE TABLE channel_settings (
-	user_id BIGINT NOT NULL,
-	channel_id BIGINT NOT NULL,
-	permissions BIT VARYING NOT NULL DEFAULT 0::bit(16),
-
-	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
-);
 
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
@@ -77,6 +59,27 @@ CREATE TABLE messages (
 	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE RESTRICT,
 	FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
 );
+
+
+/* Permissions bits
+ * 0:   modify channel
+ * 1:   invite members
+ * 2:   kick members
+ * 3:   ban members
+ * 4:   modify members
+ */
+
+CREATE TABLE channel_settings (
+	user_id BIGINT NOT NULL,
+	channel_id BIGINT NOT NULL,
+	permissions BIT VARYING NOT NULL DEFAULT 0::bit(16),
+	last_read_id BIGINT,
+
+	FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+	FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
+	FOREIGN KEY (last_read_id) REFERENCES messages(id) ON DELETE SET NULL
+);
+
 
 CREATE TABLE files (
 	id BIGINT PRIMARY KEY NOT NULL,
