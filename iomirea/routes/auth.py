@@ -24,8 +24,8 @@ from typing import Dict, Any, Union
 
 import bcrypt
 import aiohttp_jinja2
+import aiohttp_session
 
-from aiohttp_session import new_session, get_session
 from aiohttp import web
 
 from utils import helpers, smtp
@@ -84,6 +84,25 @@ async def send_password_reset_code(
     )
 
     await smtp.send_message([email], text, req.config_dict["config"])
+
+
+async def new_session(
+    req: web.Request, user_id: int, *, clean_cookies: bool = False
+) -> None:
+    """Generates and saves new aiohttp_session session."""
+
+    session = await aiohttp_session.new_session(req)
+    session.set_new_identity(uuid.uuid4().hex)
+    session["user_id"] = user_id
+
+    if clean_cookies:
+        await req.config_dict["rd_conn"].execute(
+            "EVAL", REMOVE_EXPIRED_COOKIES, 1, user_id
+        )
+
+    await req.config_dict["rd_conn"].execute(
+        "SADD", f"user_cookies:{user_id}", session.identity
+    )
 
 
 routes = web.RouteTableDef()
@@ -189,16 +208,7 @@ async def get_email_confirm(
         "UPDATE users SET verified = true WHERE id = $1", code.user_id
     )
 
-    session = await new_session(req)
-    session["user_id"] = code.user_id
-
-    # WARING: monkeypatch
-    # TODO: use wrapper to get identity after cookie is saved
-    session._identity = uuid.uuid4().hex
-
-    await req.config_dict["rd_conn"].execute(
-        "SADD", f"user_cookies:{code.user_id}", session.identity
-    )
+    await new_session(req, code.user_id)
 
     return {"confirmed": True}
 
@@ -218,10 +228,7 @@ async def get_login(req: web.Request) -> Union[web.Response, Dict[str, Any]]:
 
 @routes.post("/login")
 @helpers.body_params(
-    {
-        "login": Email(),
-        "password": converters.String(checks=[checks.LengthBetween(4, 2048)]),
-    },
+    {"login": Email(), "password": converters.String()},
     unique=True,
     content_types=[ContentType.URLENCODED],
 )
@@ -238,27 +245,14 @@ async def post_login(req: web.Request) -> web.Response:
     if not await check_user_password(query["password"], record["password"]):
         raise web.HTTPUnauthorized()
 
-    session = await new_session(req)
-    session["user_id"] = record["id"]
-
-    # WARING: monkeypatch
-    # TODO: use wrapper to get identity after cookie is saved
-    session._identity = uuid.uuid4().hex
-
-    await req.config_dict["rd_conn"].execute(
-        "EVAL", REMOVE_EXPIRED_COOKIES, 1, record["id"]
-    )
-
-    await req.config_dict["rd_conn"].execute(
-        "SADD", f"user_cookies:{record['id']}", session.identity
-    )
+    await new_session(req, record["id"], clean_cookies=True)
 
     return web.Response()
 
 
 @routes.get("/logout", name="logout")
 async def logout(req: web.Request) -> web.Response:
-    session = await get_session(req)
+    session = await aiohttp_session.get_session(req)
     if session.get("user_id") is None:
         raise web.HTTPForbidden()
 
@@ -354,17 +348,8 @@ async def post_reset_password(req: web.Request) -> web.Response:
             f"user_cookies:{code.user_id}",
         )
 
-        # create new session
-        session = await new_session(req)
-        session["user_id"] = code.user_id
+        await new_session(req, code.user_id)
 
-        # WARING: monkeypatch
-        # TODO: use wrapper to get identity after cookie is saved
-        session._identity = uuid.uuid4().hex
-
-        await req.config_dict["rd_conn"].execute(
-            "SADD", f"user_cookies:{session['user_id']}", session.identity
-        )
         return web.Response()
     else:
         raise web.HTTPBadRequest()

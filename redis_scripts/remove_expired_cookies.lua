@@ -8,7 +8,7 @@ for tKey, tValue in pairs(tCookies) do
 	end
 end
 
--- check if table is empty
+-- check if there are no expired items
 if next(tExpired) == nil then
 	return 0
 end

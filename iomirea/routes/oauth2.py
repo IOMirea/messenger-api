@@ -72,7 +72,7 @@ async def authorize(
         # TODO: check scope items
         # TODO: check redirect_uri
 
-        for p in ("client_id", "scope", "response_type"):
+        for p in ("client_id", "scope", "response_type", "redirect_uri"):
             if p not in query:
                 return web.json_response(
                     {
@@ -129,7 +129,9 @@ async def authorize(
             )
 
         session = await get_session(req)
-        if "user_id" not in session:
+        if session.new:
+            session.invalidate()
+
             # TODO: figure out how to avoid hardcoding login path
             return web.HTTPFound(
                 f"{req.scheme}://{req.host}/login?{urlencode({'redirect': req.url})}"
@@ -177,8 +179,12 @@ async def post_authorize(req: web.Request) -> web.Response:
     post_data = await req.post()
 
     if not post_data.get("confirm_btn"):
-        return web.HTTPFound(
-            query["redirect_uri"] + "&error=user has denied access"
+        return web.json_response(
+            {
+                "error": "access_denied",
+                "error_description": "User has denied access",
+            },
+            status=400,
         )
 
     message = ".".join([str(query["client_id"]), query["redirect_uri"]])
