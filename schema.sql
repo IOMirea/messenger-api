@@ -43,7 +43,7 @@ CREATE TABLE channel_settings (
 
 CREATE TABLE applications (
 	id BIGINT PRIMARY KEY NOT NULL,
-	owner_id BIGING NOT NULL,
+	owner_id BIGINT NOT NULL,
 	secret TEXT NOT NULL,
 	redirect_uri TEXT NOT NULL,
 	name VARCHAR(256) NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE tokens (
 -- INDEXES --
 CREATE INDEX messages_channel_index ON messages(channel_id);
 
-CREATE UNIQUE users_unique_email_index ON users(email);
+CREATE UNIQUE INDEX users_unique_email_index ON users(email);
 
 CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
 
@@ -173,7 +173,65 @@ ALTER TABLE channels ADD CONSTRAINT channels_owner_id_fkey FOREIGN KEY (owner_id
 
 
 -- FUNCTIONS --
-CREATE FUNCTION add_channel_user(cid BIGINT, uid BIGINT) RETURNS BOOLEAN
+
+-- Warning: function does not perform access checks
+CREATE OR REPLACE FUNCTION create_message(
+	mid BIGINT,
+	cid BIGINT,
+	uid BIGINT,
+	content VARCHAR(2048),
+	encrypted BOOL DEFAULT FALSE,
+	type SMALLINT DEFAULT 0
+) RETURNS SETOF messages_with_author
+AS $$
+BEGIN
+	INSERT INTO messages (
+		id,
+		channel_id,
+		author_id,
+		content,
+		encrypted,
+		type
+	) VALUES (
+		mid,
+		cid,
+		uid,
+		content,
+		encrypted,
+		type
+	);
+
+	RETURN QUERY SELECT * FROM messages_with_author WHERE id = mid;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION delete_message(mid BIGINT) RETURNS BOOL
+AS $$
+DECLARE
+	_pinned BOOL;
+	_channel_id BIGINT;
+BEGIN
+	DELETE FROM messages
+	WHERE id = mid
+	RETURNING pinned, channel_id
+	INTO _pinned, _channel_id;
+
+	IF NOT FOUND THEN
+		RETURN false;
+	END IF;
+
+	IF _pinned THEN
+		UPDATE channels
+		SET pinned_ids = array_remove(pinned_ids, mid)
+		WHERE Id = _channel_id;
+	END IF;
+
+	RETURN true;
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION add_channel_user(cid BIGINT, uid BIGINT) RETURNS BOOL
 AS $success$
 DECLARE user_channels BIGINT[];
 BEGIN
@@ -201,7 +259,7 @@ BEGIN
 END;
 $success$ LANGUAGE plpgsql;
 
-CREATE FUNCTION remove_channel_user(cid BIGINT, uid BIGINT) RETURNS BOOLEAN
+CREATE FUNCTION remove_channel_user(cid BIGINT, uid BIGINT) RETURNS BOOL
 AS $success$
 DECLARE user_channels BIGINT[];
 BEGIN
@@ -229,7 +287,44 @@ BEGIN
 END;
 $success$ LANGUAGE plpgsql;
 
-CREATE FUNCTION has_permissions(cid BIGINT, uid BIGINT, perms BIT VARYING) RETURNS BOOLEAN
+-- Warning: function does not check amount of pins in channel
+-- Warning: function does not check permissions
+CREATE FUNCTION add_channel_pin(mid BIGINT, cid BIGINT) RETURNS BOOL
+AS $$
+BEGIN
+	-- channel match condition to verify channel as well
+	UPDATE messages SET pinned = true WHERE id = mid AND channel_id = cid;
+
+	IF NOT FOUND THEN
+		RETURN false;
+	END IF;
+
+	UPDATE channels
+        SET pinned_ids = array_append(pinned_ids, mid)
+        WHERE id = cid AND NOT (mid = ANY(pinned_ids));
+
+	RETURN true;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Warning: function does not check permissions
+CREATE FUNCTION remove_channel_pin(mid BIGINT, cid BIGINT) RETURNS BOOL
+AS $$
+BEGIN
+	-- channel match condition to verify channel as well
+        UPDATE messages SET pinned = false WHERE id = mid AND channel_id = cid;
+
+        IF NOT FOUND THEN
+                RETURN false;
+        END IF;
+
+        UPDATE channels SET pinned_ids = array_remove(pinned_ids, mid) WHERE id = cid;
+
+        RETURN true;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION has_permissions(cid BIGINT, uid BIGINT, perms BIT VARYING) RETURNS BOOL
 AS $has_permissions$
 DECLARE selected_perms BIT VARYING;
 BEGIN

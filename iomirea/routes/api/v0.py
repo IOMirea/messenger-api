@@ -72,15 +72,18 @@ async def create_channel(req: web.Request) -> web.Response:
                 "SELECT FROM add_channel_user($1, $2)", channel_id, user_id
             )
 
-            await conn.fetch(
-                "INSERT INTO messages (id, author_id, channel_id, content, type)"
-                "VALUES ($1, $2, $3, $4, $5)",
+            message = await conn.fetchrow(
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
                 req.config_dict["sf_gen"].gen_id(),
-                user_id,
                 channel_id,
+                user_id,
                 "",
                 MessageTypes.CHANNEL_CREATE.value,
             )
+
+    req.config_dict["emitter"].emit(
+        events.MESSAGE_CREATE(payload=MESSAGE.to_json(message))
+    )
 
     return web.json_response(CHANNEL.to_json(channel))
 
@@ -114,22 +117,13 @@ async def edit_channel(req: web.Request) -> web.Response:
             if channel is None:
                 raise web.HTTPNotModified
 
-            message_id = req.config_dict["sf_gen"].gen_id()
-
-            # TODO: use function to create messages
-            await conn.fetch(
-                f"INSERT INTO messages (id, author_id, channel_id, content, type)"
-                f"VALUES ($1, $2, $3, $4, $5)",
-                message_id,
-                req["access_token"].user_id,
+            message = await conn.fetchrow(
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
+                req.config_dict["sf_gen"].gen_id(),
                 channel_id,
+                req["access_token"].user_id,
                 "",
                 MessageTypes.CHANNEL_NAME_UPDATE.value,
-            )
-
-            message = await conn.fetchrow(
-                f"SELECT {MESSAGE} from messages_with_author WHERE id = $1",
-                message_id,
             )
 
     diff = CHANNEL.diff_to_json(old_channel, channel)
@@ -176,6 +170,19 @@ async def add_channel_recipient(req: web.Request) -> web.Response:
             if not success:
                 raise web.HTTPNotModified(reason="Is user already in channel?")
 
+            message = await conn.fetchrow(
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
+                req.config_dict["sf_gen"].gen_id(),
+                channel_id,
+                user_id,
+                "",
+                MessageTypes.RECIPIENT_ADD.value,
+            )
+
+    req.config_dict["emitter"].emit(
+        events.MESSAGE_CREATE(payload=MESSAGE.to_json(message))
+    )
+
     raise web.HTTPNoContent()
 
 
@@ -215,6 +222,19 @@ async def remove_channel_recipient(req: web.Request) -> web.Response:
             if not success:
                 raise web.HTTPNotModified(reason="Is user in channel?")
 
+            message = await conn.fetchrow(
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
+                req.config_dict["sf_gen"].gen_id(),
+                channel_id,
+                user_id,
+                "",
+                MessageTypes.RECIPIENT_REMOVE.value,
+            )
+
+    req.config_dict["emitter"].emit(
+        events.MESSAGE_CREATE(payload=MESSAGE.to_json(message))
+    )
+
     raise web.HTTPNoContent()
 
 
@@ -245,46 +265,32 @@ async def add_pin(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
     message_id = req["match_info"]["message_id"]
 
-    await ensure_existance(req, "messages", message_id, "Message")
-
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
-            if (
-                await conn.fetchval(
-                    "SELECT cardinality(pinned_ids) FROM channels WHERE id = $1",
-                    channel_id,
-                )
-                >= 50
-            ):
-
+            pins_ids = await conn.fetchval(
+                "SELECT pinned_ids FROM channels WHERE id = $1", channel_id
+            )
+            if len(pins_ids) >= 50:
                 raise web.HTTPBadRequest(reason="Too many pins (>= 50)")
 
-            # TODO: use function to pin/unpin message
-            await conn.fetch(
-                "UPDATE channels SET pinned_ids = array_append(pinned_ids, $1) WHERE id = $2 AND NOT $1 = ANY(pinned_ids)",
-                message_id,
-                channel_id,
-            )
-            await conn.fetch(
-                "UPDATE messages SET pinned = true WHERE id = $1", message_id
-            )
+            if message_id in pins_ids:
+                raise web.HTTPNotModified(reason="Already pinned")
 
-            pin_message_id = req.config_dict["sf_gen"].gen_id()
-
-            # TODO: use function to create messages
-            await conn.fetch(
-                f"INSERT INTO messages (id, author_id, channel_id, content, type)"
-                f"VALUES ($1, $2, $3, $4, $5)",
-                pin_message_id,
-                req["access_token"].user_id,
-                channel_id,
-                "",
-                MessageTypes.CHANNEL_PIN_ADD.value,
+            pin_success = await conn.fetchval(
+                "SELECT * FROM add_channel_pin($1, $2)", message_id, channel_id
             )
+            if not pin_success:
+                raise web.HTTPBadRequest(
+                    reason="Failed to pin message. Does it belong to channel?"
+                )
 
             message = await conn.fetchrow(
-                f"SELECT {MESSAGE} from messages_with_author WHERE id = $1",
-                pin_message_id,
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
+                req.config_dict["sf_gen"].gen_id(),
+                channel_id,
+                req["access_token"].user_id,
+                "",
+                MessageTypes.CHANNEL_PIN_ADD.value,
             )
 
     req.config_dict["emitter"].emit(
@@ -294,6 +300,7 @@ async def add_pin(req: web.Request) -> web.Response:
     raise web.HTTPNoContent()
 
 
+# FIXME: pin remove events are always fired
 @routes.delete(endpoints_public.CHANNEL_PIN)
 @helpers.parse_token
 @access.channel
@@ -301,36 +308,25 @@ async def remove_pin(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
     message_id = req["match_info"]["message_id"]
 
-    await ensure_existance(req, "messages", message_id, "Message")
-
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
-            # TODO: use function to pin/unpin message
-            await conn.fetch(
-                "UPDATE channels SET pinned_ids = array_remove(pinned_ids, $1) WHERE id = $2",
+            unpin_success = await conn.fetchval(
+                "SELECT * FROM remove_channel_pin($1, $2)",
                 message_id,
                 channel_id,
             )
-            await conn.fetch(
-                "UPDATE messages SET pinned = false WHERE id = $1", message_id
-            )
-
-            pin_message_id = req.config_dict["sf_gen"].gen_id()
-
-            # TODO: use function to create messages
-            await conn.fetch(
-                f"INSERT INTO messages (id, author_id, channel_id, content, type)"
-                f"VALUES ($1, $2, $3, $4, $5)",
-                pin_message_id,
-                req["access_token"].user_id,
-                channel_id,
-                "",
-                MessageTypes.CHANNEL_PIN_REMOVE.value,
-            )
+            if not unpin_success:
+                raise web.HTTPBadRequest(
+                    reason="Failed to unpin message. Does it belong to channel?"
+                )
 
             message = await conn.fetchrow(
-                f"SELECT {MESSAGE} from messages_with_author WHERE id = $1",
-                pin_message_id,
+                f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4, type:=$5)",
+                req.config_dict["sf_gen"].gen_id(),
+                channel_id,
+                req["access_token"].user_id,
+                "",
+                MessageTypes.CHANNEL_PIN_REMOVE.value,
             )
 
     req.config_dict["emitter"].emit(
@@ -353,18 +349,12 @@ async def remove_pin(req: web.Request) -> web.Response:
     # content_types=[ContentType.JSON, ContentType.FORM_DATA],
 )
 async def create_message(req: web.Request) -> web.Response:
-    snowflake = req.config_dict["sf_gen"].gen_id()
-
-    await req.config_dict["pg_conn"].fetch(
-        f"INSERT INTO messages (id, author_id, channel_id, content) VALUES ($1, $2, $3, $4)",
-        snowflake,
-        req["access_token"].user_id,
-        req["match_info"]["channel_id"],
-        req["body"]["content"],
-    )
-
     message = await req.config_dict["pg_conn"].fetchrow(
-        f"SELECT {MESSAGE} FROM messages_with_author WHERE id = $1", snowflake
+        f"SELECT {MESSAGE} FROM create_message($1, $2, $3, $4)",
+        req.config_dict["sf_gen"].gen_id(),
+        req["match_info"]["channel_id"],
+        req["access_token"].user_id,
+        req["body"]["content"],
     )
 
     data = MESSAGE.to_json(message)
