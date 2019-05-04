@@ -30,12 +30,15 @@ from typing import (
     List,
 )
 
+import asyncpg
+
 from aiohttp import web
 
 from constants import ContentType
 from log import server_log
 from models import converters
 from models.access_token import Token
+from enums import Permissions
 
 
 _Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
@@ -50,6 +53,50 @@ def get_repeating(iterable: Iterable[Any]) -> Optional[Any]:
         seen.add(x)
 
     return None
+
+
+async def ensure_permissions(
+    *permissions: Permissions,
+    request: web.Request,
+    user_id: Optional[int] = None,
+    channel_id: Optional[int] = None,
+) -> None:
+    """
+    Checks that user with given id has given permissions in channel with given
+    id. Raises HTTPForbidden if not.
+    Function will treat invalid user/channel id as if permission was missing.
+    These checks shoud be performed beforehand.
+
+    Arguments:
+        user_id:
+            id of user to check permissions. If not passed, user id from
+            access token is used.
+
+        channel_id:
+            id of channel to check permissions in. If not passed, channel id
+            from match info is used.
+    """
+    if user_id is None:
+        user_id = request["access_token"].user_id
+
+    if channel_id is None:
+        channel_id = request["match_info"]["channel_id"]
+
+    permissions_bitfield = asyncpg.BitString.from_int(
+        sum([p.value for p in permissions]), 16
+    )
+
+    has_permission = await request.config_dict["pg_conn"].fetchval(
+        "SELECT * FROM has_permissions($1, $2, $3)",
+        channel_id,
+        user_id,
+        permissions_bitfield,
+    )
+
+    if not has_permission:
+        raise web.HTTPForbidden(
+            reason=f"You need the following permissions to perform this action: [{' '.join(p.name for p in permissions)}]"
+        )
 
 
 def query_params(

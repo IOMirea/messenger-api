@@ -99,25 +99,12 @@ async def create_channel(req: web.Request) -> web.Response:
     }
 )
 async def edit_channel(req: web.Request) -> web.Response:
+    await helpers.ensure_permissions(Permissions.MODIFY_CHANNEL, request=req)
+
     channel_id = req["match_info"]["channel_id"]
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
-            # TODO: unify permission checks
-            has_permission = await conn.fetchval(
-                "SELECT * FROM has_permissions($1, $2, $3)",
-                channel_id,
-                req["access_token"].user_id,
-                asyncpg.BitString.from_int(
-                    Permissions.MODIFY_CHANNEL.value, 16
-                ),
-            )
-
-            if not has_permission:
-                raise web.HTTPForbidden(
-                    reason="You do not have permission to modify channel"
-                )
-
             old_channel = await conn.fetchrow(
                 f"SELECT {CHANNEL} FROM channels WHERE id = $1", channel_id
             )
@@ -171,6 +158,8 @@ async def get_channel(req: web.Request) -> web.Response:
 @helpers.parse_token
 @access.channel
 async def add_channel_recipient(req: web.Request) -> web.Response:
+    await helpers.ensure_permissions(Permissions.INVITE_MEMBERS, request=req)
+
     channel_id = req["match_info"]["channel_id"]
     user_id = req["match_info"]["user_id"]
 
@@ -212,21 +201,10 @@ async def remove_channel_recipient(req: web.Request) -> web.Response:
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
-            # TODO: unify permission checks
             if req["access_token"].user_id != user_id:  # user kicks other user
-                has_permission = await conn.fetchval(
-                    "SELECT * FROM has_permissions($1, $2, $3)",
-                    channel_id,
-                    req["access_token"].user_id,
-                    asyncpg.BitString.from_int(
-                        Permissions.KICK_MEMBERS.value, 16
-                    ),
+                await helpers.ensure_permissions(
+                    Permissions.KICK_MEMBERS, request=req
                 )
-
-                if not has_permission:
-                    raise web.HTTPForbidden(
-                        reason="You do not have permission to kick members"
-                    )
 
             success = await conn.fetchval(
                 "SELECT * FROM remove_channel_user($1, $2)",
