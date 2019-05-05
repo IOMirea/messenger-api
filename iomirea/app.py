@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import asyncio
-import argparse
 import ssl
 
 from typing import Optional
@@ -32,6 +31,7 @@ from aiohttp import web
 
 import middlewares
 
+from cli import args
 from routes.api.v0 import routes as api_v0_routes
 from routes.websocket import routes as ws_routes
 from routes.auth import routes as auth_routes
@@ -58,33 +58,6 @@ else:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
-argparser = argparse.ArgumentParser(description="IOMirea server")
-
-argparser.add_argument(
-    "-d", "--debug", action="store_true", help="run server in debug mode"
-)
-
-argparser.add_argument(
-    "--force-ssl",
-    action="store_true",
-    help="run https server (certificates paths should be configured)",
-)
-
-argparser.add_argument(
-    "-e",
-    "--with-eval",
-    action="store_true",
-    help="enable python eval endpoint (works only in debug mode)",
-)
-
-argparser.add_argument(
-    "-s",
-    "--with-static",
-    action="store_true",
-    help="enable static files support by server (works only in debug mode)",
-)
-
-
 async def on_startup(app: web.Application) -> None:
     aiohttp_jinja2.setup(
         app, loader=jinja2.FileSystemLoader("iomirea/templates")
@@ -104,7 +77,7 @@ async def on_startup(app: web.Application) -> None:
 if __name__ == "__main__":
     app = web.Application()
 
-    app["args"] = argparser.parse_args()
+    app["args"] = args
     app["config"] = Config("config.yaml")
     app["sf_gen"] = SnowflakeGenerator()
 
@@ -147,6 +120,8 @@ if __name__ == "__main__":
     ssl_context: Optional[ssl.SSLContext] = None
 
     if app["args"].force_ssl:
+        server_log.info("SSL: Using certificate")
+
         ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_section = app["config"]["ssl"]
         ssl_context.load_cert_chain(
