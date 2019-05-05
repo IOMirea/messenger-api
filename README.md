@@ -20,7 +20,8 @@ Other parts of the project can be found at:
 ## Key features
 - RESTful API
 - OAuth2 authorization
-- User applications registration
+- WebSocket events
+- User applications registration (planned)
 - CDN (planned)
 - Secret chats and end-to-end message encryption (planned)
 - Distribution and load balancing (planned)
