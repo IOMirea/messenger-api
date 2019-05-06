@@ -178,7 +178,7 @@ ALTER TABLE channels ADD CONSTRAINT channels_owner_id_fkey FOREIGN KEY (owner_id
 -- FUNCTIONS --
 
 -- Warning: function does not perform access checks
-CREATE OR REPLACE FUNCTION create_message(
+CREATE FUNCTION create_message(
 	mid BIGINT,
 	cid BIGINT,
 	uid BIGINT,
@@ -208,7 +208,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION delete_message(mid BIGINT) RETURNS BOOL
+CREATE FUNCTION delete_message(mid BIGINT) RETURNS BOOL
 AS $$
 DECLARE
 	_pinned BOOL;

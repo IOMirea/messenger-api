@@ -34,6 +34,7 @@ import asyncpg
 
 from aiohttp import web
 
+from db.redis import HAS_PERMISSIONS
 from constants import ContentType
 from log import server_log
 from models import converters
@@ -76,24 +77,40 @@ async def ensure_permissions(
             id of channel to check permissions in. If not passed, channel id
             from match info is used.
     """
+
+    all_permissions = sum([p.value for p in permissions])
+
     if user_id is None:
         user_id = request["access_token"].user_id
 
     if channel_id is None:
         channel_id = request["match_info"]["channel_id"]
 
-    permissions_bitfield = asyncpg.BitString.from_int(
-        sum([p.value for p in permissions]), 16
+    has_permissions = await request.config_dict["rd_conn"].execute(
+        "EVAL", HAS_PERMISSIONS, 0, channel_id, user_id, all_permissions
     )
 
-    has_permission = await request.config_dict["pg_conn"].fetchval(
-        "SELECT * FROM has_permissions($1, $2, $3)",
-        channel_id,
-        user_id,
-        permissions_bitfield,
-    )
+    if has_permissions == -1:  # not cached
+        db_permissions = await request.config_dict["pg_conn"].fetchval(
+            "SELECT permissions FROM channel_settings WHERE user_id = $1 AND channel_id = $2",
+            user_id,
+            channel_id,
+        )
 
-    if not has_permission:
+        db_permissions_int = asyncpg.BitString(db_permissions).to_int()
+
+        await request.config_dict["rd_conn"].execute(
+            "SETEX",
+            f"permissions:{channel_id}:{user_id}",
+            3600,
+            db_permissions_int,
+        )
+
+        has_permissions = (
+            all_permissions & db_permissions_int
+        ) == all_permissions
+
+    if not has_permissions:
         raise web.HTTPForbidden(
             reason=f"You need the following permissions to perform this action: [{' '.join(p.name for p in permissions)}]"
         )
