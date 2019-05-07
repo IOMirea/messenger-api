@@ -60,26 +60,50 @@ class Token:
         self._conn = conn
 
     @classmethod
-    def from_string(cls, input_str: str, conn: asyncpg.Connection) -> "Token":
-        if input_str.lower().startswith("bearer "):
-            input_str = input_str[7:]
+    def from_string(
+    cls,
+    redis: aioredis.Connection, pg: asyncpg.Connection
+    *,
+    refresh: bool=True
+    ) -> "Token":
 
-        parts = input_str.split(".")
-        if len(parts) != 3:
-            raise ValueError("Wrong number of token parts")
+    if input_str.lower().startswith("bearer "):
+        input_str = input_str[7:]
 
-        try:
-            user_id = cls.decode_user_id(
-                parts[0]
-            )  # ValueError, binascii.Error
-            create_offset = cls.decode_create_offset(
-                parts[1]
-            )  # ValueError, binascii.Error
-        except (ValueError, binascii.Error) as e:
-            raise ValueError(f"Unable to decode token base64 parts: {e}")
+    parts = input_str.split(".")
+    if len(parts) != 3:
+        raise ValueError("Wrong number of token parts")
 
-        return cls(user_id, create_offset, parts, conn)
+    try:
+        user_id = cls.decode_user_id(
+            parts[0]
+        )  # ValueError, binascii.Error
+        create_offset = cls.decode_create_offset(
+            parts[1]
+        )  # ValueError, binascii.Error
+    except (ValueError, binascii.Error) as e:
+        raise ValueError(f"Unable to decode token base64 parts: {e}")
 
+    data = await redis.execute("SMEMBERS", f"token:{parts[2]}")
+    
+    if data:
+        return cls(int(data[0]), int(data[1]), data[2].decode(), pg, data[3].decode())
+
+    record = await self._conn.fetchval(
+        "SELECT user_id, scope, create_offset FROM tokens WHERE hmac_component = $1",
+        self._parts[2],
+    )
+
+    if record is None:
+    # does not exist
+
+    scope = record["scope"]
+    create_offset = record["create_offset"]
+    user_id = record["user_id"]
+    await pg.execute("SADD", f"token:{parts[2]}", user_id, create_offset, parts[2], scope)
+    await pg.execute("EXPIRE",f"token:{parts[2]}", 36000)
+    
+    return cls(user_id,  create_offset, parts[2], pg, scope)
     @classmethod
     async def from_data(
         cls,
