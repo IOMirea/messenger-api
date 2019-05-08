@@ -34,7 +34,6 @@ import asyncpg
 
 from aiohttp import web
 
-from db.redis import HAS_PERMISSIONS
 from constants import ContentType
 from log import server_log
 from models import converters
@@ -78,6 +77,9 @@ async def ensure_permissions(
             from match info is used.
     """
 
+    def check_permissions(stored: int, recieved: int) -> bool:
+        return (stored & recieved) == recieved
+
     all_permissions = sum([p.value for p in permissions])
 
     if user_id is None:
@@ -86,11 +88,19 @@ async def ensure_permissions(
     if channel_id is None:
         channel_id = request["match_info"]["channel_id"]
 
-    has_permissions = await request.config_dict["rd_conn"].execute(
-        "EVAL", HAS_PERMISSIONS, 0, channel_id, user_id, all_permissions
+    cache_key = f"permissions:{channel_id}:{user_id}"
+
+    cached_permissions = await request.config_dict["rd_conn"].execute(
+        "GET", cache_key
     )
 
-    if has_permissions == -1:  # not cached
+    if cached_permissions is not None:
+        await request.config_dict["rd_conn"].execute("EXPIRE", cache_key, 3600)
+
+        has_permissions = check_permissions(
+            int(cached_permissions), all_permissions
+        )
+    else:
         db_permissions = await request.config_dict["pg_conn"].fetchval(
             "SELECT permissions FROM channel_settings WHERE user_id = $1 AND channel_id = $2",
             user_id,
@@ -100,15 +110,12 @@ async def ensure_permissions(
         db_permissions_int = asyncpg.BitString(db_permissions).to_int()
 
         await request.config_dict["rd_conn"].execute(
-            "SETEX",
-            f"permissions:{channel_id}:{user_id}",
-            3600,
-            db_permissions_int,
+            "SETEX", cache_key, 3600, db_permissions_int
         )
 
-        has_permissions = (
-            all_permissions & db_permissions_int
-        ) == all_permissions
+        has_permissions = check_permissions(
+            db_permissions_int, all_permissions
+        )
 
     if not has_permissions:
         raise web.HTTPForbidden(

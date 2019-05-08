@@ -28,6 +28,3 @@ async def close_redis_pool(app: web.Application) -> None:
 
 with open("redis_scripts/remove_expired_cookies.lua") as f:
     REMOVE_EXPIRED_COOKIES = f.read()
-
-with open("redis_scripts/has_permissions.lua") as f:
-    HAS_PERMISSIONS = f.read()
