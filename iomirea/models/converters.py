@@ -205,17 +205,33 @@ class Number(Converter):
 
 
 class String(Converter):
-    def __init__(self, strip: bool = False, **kwargs: typing.Any):
+    """
+    String converter.
+
+    Arguments:
+        strip: strips result if True
+        strip_fn: string strip function to use.
+    """
+
+    def __init__(
+        self,
+        strip: bool = False,
+        strip_fn: typing.Callable[
+            [str, typing.Optional[str]], str
+        ] = str.strip,
+        **kwargs: typing.Any,
+    ):
         super().__init__(**kwargs)
 
         self.strip = strip
+        self.strip_fn = strip_fn
 
     async def _convert(
         self, value: InputType, app: aiohttp.web.Application
     ) -> str:
         value = str(value)
 
-        return value.strip() if self.strip else value
+        return self.strip_fn(value, None) if self.strip else value
 
 
 class Boolean(Converter):

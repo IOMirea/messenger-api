@@ -335,7 +335,9 @@ async def remove_pin(req: web.Request) -> web.Response:
 @helpers.body_params(
     {
         "content": converters.String(
-            strip=True, checks=[checks.LengthBetween(1, 2048)]
+            strip=True,
+            strip_fn=str.rstrip,
+            checks=[checks.LengthBetween(1, 2048)],
         )
     },
     # TODO: support ContentType.FORM_DATA for file uploads
