@@ -137,6 +137,10 @@ async def authorize(
                 f"{req.scheme}://{req.host}/login?{urlencode({'redirect': req.url})}"
             )
 
+        user_name = await req.config_dict["pg_conn"].fetchval(
+            "SELECT name FROM users WHERE id = $1", session["user_id"]
+        )
+
         app = APPLICATION.to_json(record)
 
         return {
@@ -146,6 +150,7 @@ async def authorize(
             "app_name": app["name"],
             "app_author_id": app["owner"]["id"],
             "app_author_name": app["owner"]["name"],
+            "user_name": user_name,
         }
 
     elif query["response_type"] == "token":

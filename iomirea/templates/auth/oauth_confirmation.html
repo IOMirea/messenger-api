@@ -9,7 +9,13 @@
 	<script type="text/javascript">
      	$(function() {
 		// TODO: let user modify scope
+		}
 	});
+
+	function buildURL(item) {
+		item.href='/login?redirect='+encodeURIComponent(window.location.href);
+		return true;
+	}
 	</script>
 
 </head>
@@ -22,6 +28,8 @@
 		<p />
 		<input class="button" id="b1" type="submit" name="confirm_btn" value="Confirm">
 		<input class="button" id="b2" type="submit" name="deny_btn" value="Deny">
+
+		<a onclick="return buildURL(this)" href="">Change account ({{ user_name }})</a>
 	</form>
 	</div>
 </body>

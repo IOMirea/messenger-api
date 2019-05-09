@@ -33,10 +33,6 @@
 	});
 	function ResetPassword() {
 		var email = $("#login_field").val()
-		if (email === "") {
-			alert("Please, enter email")
-			return
-		}
 		var xhr = new XMLHttpRequest();
 		xhr.onreadystatechange = function() {
 			if (this.readyState !== XMLHttpRequest.DONE) {
