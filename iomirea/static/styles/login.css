@@ -1,91 +1,119 @@
 @charset "utf-8";
 /* CSS Document */
 
-div{
+#eyebox {
+	display: flex;
+	align-items: center;
+	position: absolute;
+	z-index: 200;
+	height: 51px;
+	opacity:.6;
+	right: 32px;
+	cursor: pointer;
+}
+
+#eyebox:hover {
+	opacity: 1;
+}
+
+.eye {
+	content: url("/eye.png");
+	width: 20px;
+}
+
+.eyesl {
+	content: url("/eyesl.png");
+	width: 20px;
+}
+
+div {
 	width: 300px;
 	text-align: center;
 	color: #FFFFFF;
-	font-size:17px;
+	font-size: 17px;
 }
 
-.uinp{
+
+.uinp::placeholder {
+	color: #FFFFFF;
+}
+
+.uinp {
 	text-indent: 3px;
-	outline:none;
+	outline: none;
+	margin-top: 10px;
 	margin-bottom: 5px;
-	margin-top: 5px;
 	width: 90%;
 	height: 25px;
 	font-size: 17px;
-	border-style:inset;
+	border-style: inset;
 	border-width: 1.8px;
 	border-color: #FFAF46;
-	border-radius: 3px;
+	border-radius: 5px;
 	background-color: #FFB34F;
 	color: #FFFFFF;
 }
 
-.uinp:hover{
+.uinp:hover {
 	border-color: #E08000;
 	background-color: #F4A845;
 }
 
-.uinp:focus{
+.uinp:focus {
 	border-color: #E08000;
 	background-color: #F4A845;
 }
 
 
-.link{
+.link {
+	margin-top: 20px;
 	font-size: 12px;
 	line-height: 1.6;
 	text-decoration: none;
 }
 
-.link:hover{
-	text-decoration:underline;
-}
-
-
-#linkt{
-	margin-top:-15px;
+#linkt {
+	margin-top: 4px;
+	margin-bottom: 4px;
 	font-size: 12px;
 	line-height: 1.6;
 }
 
-
-.link:visited{
+.link:visited {
 	color: #0000EE
 }
 
-.link:active{
+.link:active {
 	color: #0000EE
 }
 
-#margint{line-height: 1.2;margin-bottom: 33px;margin-top: 10px;}
+.link:hover{
+    text-decoration:underline;
+}
 
-.button{
-	outline:none;
-	margin-top: 12px;
+.button {
+	outline: none;
+	margin-top: 10px;
 	margin-bottom: 3px;
 	width: 200px;
 	height: 34px;
 	text-align: center;
 	font-family: Cambria, "Hoefler Text", "Liberation Serif", Times, "Times New Roman", "serif";
 	font-size: 15px;
-	border-style:hidden;
-	border-radius: 4px;
-	background-color:#F19133;
+	border-style: hidden;
+	border-radius: 6px;
+	background-color: #F19133;
 	color: #FFFFFF;
 }
 
-.button:hover{
+.button:hover {
 	background-color: #F18923;
 	color: #EDEDED;
 	cursor: pointer;
 }
 
-.button:active{
-	border-style:inset;
+.button:active {
+	border-style: inset;
 	border-width: 1.6px;
 	border-color: #DB7F00;
 	background-color: #EA8600;
