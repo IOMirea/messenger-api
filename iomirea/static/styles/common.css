@@ -5,6 +5,7 @@ header{
 	font-size:20px;
 	color:#6A5ACD;
 	text-align: left;
+	margin-bottom: 15px;
 }
 
 html, body {
@@ -14,6 +15,7 @@ html, body {
 }
 
 body{
+	user-select: none;
 	height: inherit;
 	width: inherit;
 	background-image: url("/fox.jpg");
@@ -35,6 +37,6 @@ div{
 	transform: translate(-50%, -50%);
 	background-color:#FFB959;
 	padding: 10px;
-	border-radius: 20px;
+	border-radius: 32px;
 	box-shadow:0px 0px 4px 1px #975B0B;
 }
