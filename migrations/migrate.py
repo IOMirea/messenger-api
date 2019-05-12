@@ -175,7 +175,14 @@ async def main() -> None:
     new_config = await perform_config_migration(config)
     init_logger(new_config)
 
-    pg_connection = await asyncpg.connect(**new_config["postgresql"])
+    for i in reversed(range(10)):
+        try:
+            pg_connection = await asyncpg.connect(**new_config["postgres"])
+        except ConnectionRefusedError:
+            migrate_log(
+                f"Failed to connect to postgres, remaining attempts: {i}"
+            )
+            time.sleep(1)
 
     await perform_pg_migration(config, pg_connection)
 

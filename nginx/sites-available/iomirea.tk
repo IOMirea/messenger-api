@@ -20,7 +20,7 @@ server {
 	}
 
 	location / {
-		root /home/iomirea/IOMirea-server/iomirea/static;
+		root /www/static;
 		try_files $uri @backend;
 	}
 

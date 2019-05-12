@@ -1,1 +1,1 @@
-nginx/sites-available/iomirea.ml
+../sites-available/iomirea.ml

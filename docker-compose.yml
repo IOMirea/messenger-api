@@ -1,0 +1,54 @@
+version: '3'
+services:
+  iomirea_server_app:
+    image: app
+    build: .
+    command: python iomirea/app.py
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./iomirea:/code/iomirea
+    depends_on:
+      - migration
+      - postgres
+      - redis
+    restart: always
+    deploy:
+      restart_policy:
+        condition: always
+        delay: 5s
+  migration:
+    image: app
+    command: python migrations/migrate.py
+    depends_on:
+      - postgres
+  nginx:
+    image: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/proxy_params:/etc/nginx/proxy_params
+      - ./nginx/mime.types:/etc/nginx/mime.types
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled
+      - ./nginx/sites-available:/etc/nginx/sites-available
+      - /etc/letsencrypt:/etc/letsencrypt
+      - ./iomirea/static:/www/static
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    depends_on:
+     - iomirea_server_app
+  redis:
+    image: redis
+    ports:
+      - 6379
+    restart: always
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=iomirea
+      - POSTGRES_PASSWORD=iomirea
+      - POSTGRES_DB=iomirea
+    ports:
+      - 5432
+    restart: always

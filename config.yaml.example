@@ -1,5 +1,7 @@
-app-port: 8080
-config-version: 5
+config-version: 6
+app:
+  port: 8080
+  host: 0.0.0.0
 error-reporter:
   smtp:
     host: null
@@ -20,16 +22,16 @@ logging:
   logging-folder: logs
   migration-log-file: migration.log
   server-log-file: server.log
-postgresql:
-  database: null
-  host: localhost
-  password: null
+postgres:
+  database: iomirea
+  host: postgres
+  password: iomirea
   port: 5432
-  user: null
+  user: iomirea
 redis:
-  host: localhost
+  host: redis
   password: null
-  port: 6380
+  port: 6379
 ssl:
   cert-chain-path: null
   cert-privkey-path: null
