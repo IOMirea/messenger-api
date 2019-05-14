@@ -187,7 +187,13 @@ class IDObject:
 
         for k in self._keys:
             if _embedded is None:
-                obj[k] = record[k]
+                value = record[k]
+
+                # convert all ids to strings
+                if k == "id" or k.endswith("_id"):
+                    obj[k] = str(value)
+                else:
+                    obj[k] = record[k]
             else:
                 obj[k] = record[f"_{_embedded}_{k}"]
 
