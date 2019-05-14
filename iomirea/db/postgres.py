@@ -193,7 +193,7 @@ class IDObject:
                 if k == "id" or k.endswith("_id"):
                     obj[k] = str(value)
                 else:
-                    obj[k] = record[k]
+                    obj[k] = value
             else:
                 obj[k] = record[f"_{_embedded}_{k}"]
 
