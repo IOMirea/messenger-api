@@ -1,7 +1,7 @@
 config-version: 6
 app:
   port: 8080
-  host: 0.0.0.0
+  host: localhost
 error-reporter:
   smtp:
     host: null
