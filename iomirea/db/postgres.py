@@ -190,7 +190,7 @@ class IDObject:
                 value = record[k]
 
                 # convert all ids to strings
-                if k == "id" or k.endswith("_id"):
+                if (k == "id" or k.endswith("_id")) and value is not None:
                     obj[k] = str(value)
                 else:
                     obj[k] = value
