@@ -1,32 +1,21 @@
 version: '3'
 services:
   web:
-    image: web
-    build: .
-    command: python iomirea/app.py
+    image: iomirea
     network_mode: host
     ports:
       - 8080
     volumes:
       - ./:/code/
-    depends_on:
-      - migration
-    restart: always
-    deploy:
-      restart_policy:
-        condition: always
-        delay: 5s
-  migration:
-    image: web
-    command: python migrations/migrate.py
-    network_mode: host
-    volumes:
-      - ./:/code/
+    environment:
+      - DATACENTER=0
+      - WORKER=0
   nginx:
     image: nginx
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/proxy_params:/etc/nginx/proxy_params
+      - ./nginx/upstreams:/etc/nginx/upstreams
       - ./nginx/mime.types:/etc/nginx/mime.types
       - ./nginx/sites-enabled:/etc/nginx/sites-enabled
       - ./nginx/sites-available:/etc/nginx/sites-available
@@ -35,7 +24,7 @@ services:
     ports:
       - 80:80
       - 443:443
-    restart: always
+    restart: unless-stopped
     depends_on:
      - web
     network_mode: host

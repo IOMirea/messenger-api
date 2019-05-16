@@ -4,17 +4,15 @@ while true; do
     # git reset --hard
     git pull
 
-    python3 migrations/migrate.py
-    exit_code=$?
+    #python3 migrations/migrate.py
+    #exit_code=$?
 
-    if [ $exit_code != 0 ]
-    then
-        # at this point database is broken
-        echo "[SH]Migration script exited with error code $exit_code. Exiting"
-        break
-    fi
-
-    redis-server redis.conf
+    #if [ $exit_code != 0 ]
+    #then
+    #    # at this point database is broken
+    #    echo "[SH]Migration script exited with error code $exit_code. Exiting"
+    #    break
+    #fi
 
     python3 iomirea/app.py "$@"
     exit_code=$?

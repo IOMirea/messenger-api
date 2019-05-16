@@ -5,3 +5,4 @@ RUN echo "Updating apt"
 RUN apt-get update
 RUN echo "Installing python libraries"
 RUN pip install --no-cache-dir -r requirements.txt
+CMD ["./run.sh"]

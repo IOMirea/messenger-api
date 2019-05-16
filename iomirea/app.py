@@ -83,8 +83,9 @@ if __name__ == "__main__":
     with open("config/config.yaml", "r") as f:
         app["config"] = yaml.load(f, Loader=yaml.SafeLoader)
 
+    worker_id = int(os.environ.get("WORKER", 0))
     app["sf_gen"] = SnowflakeGenerator(
-        worker_id=int(os.environ.get("WORKER", 0)),
+        worker_id=worker_id,
         datacenter_id=int(os.environ.get("DATACENTER", 0)),
     )
 
@@ -164,7 +165,7 @@ if __name__ == "__main__":
     web.run_app(
         app,
         access_log_class=AccessLogger,
-        port=app["config"]["app"]["port"],
+        port=app["config"]["app"]["port"] + worker_id,
         ssl_context=ssl_context,
         host=app["config"]["app"]["host"],
     )
