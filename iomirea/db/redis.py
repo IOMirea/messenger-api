@@ -10,7 +10,7 @@ from log import server_log
 async def create_redis_pool(app: web.Application) -> None:
     server_log.info("Creating redis connection")
 
-    config = copy(app["config"].redis)
+    config = copy(app["config"]["redis"])
     host = config.pop("host")
     port = config.pop("port")
 

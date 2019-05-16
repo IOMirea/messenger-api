@@ -21,16 +21,15 @@ import ssl
 import asyncio
 import smtplib
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-from models.config import Config
 from log import server_log
 
 
 async def send_message(
     targets: List[str],
     text: str,
-    config: Config,
+    config: Dict[str, Any],
     loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> None:
     if loop is None:

@@ -30,7 +30,7 @@ import asyncpg
 from migration import BaseMigration
 from utils import init_logger, migrate_log
 
-CONFIG_PATH = "config.yaml"
+CONFIG_PATH = "config/config.yaml"
 
 
 async def get_config_version(config: Dict[str, Any]) -> int:

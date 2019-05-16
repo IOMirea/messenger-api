@@ -22,6 +22,7 @@ import ssl
 
 from typing import Optional
 
+import yaml
 import jinja2
 import aiohttp_jinja2
 import aiohttp_remotes
@@ -40,7 +41,6 @@ from routes.oauth2 import routes as oauth2_routes
 from routes.misc import routes as misc_routes
 
 from models.snowflake import SnowflakeGenerator
-from models.config import Config
 from models.event_emitter import EventEmitter
 from log import setup_logging, server_log, AccessLogger
 
@@ -79,7 +79,10 @@ if __name__ == "__main__":
     app = web.Application()
 
     app["args"] = args
-    app["config"] = Config("config.yaml")
+
+    with open("config/config.yaml", "r") as f:
+        app["config"] = yaml.load(f, Loader=yaml.SafeLoader)
+
     app["sf_gen"] = SnowflakeGenerator(
         worker_id=int(os.environ.get("WORKER", 0)),
         datacenter_id=int(os.environ.get("DATACENTER", 0)),
