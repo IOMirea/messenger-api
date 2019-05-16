@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 import asyncio
 import ssl
 
@@ -79,7 +80,10 @@ if __name__ == "__main__":
 
     app["args"] = args
     app["config"] = Config("config.yaml")
-    app["sf_gen"] = SnowflakeGenerator()
+    app["sf_gen"] = SnowflakeGenerator(
+        worker_id=int(os.environ.get("WORKER", 0)),
+        datacenter_id=int(os.environ.get("DATACENTER", 0)),
+    )
 
     app.on_startup.append(create_postgres_connection)
     app.on_startup.append(create_redis_pool)
