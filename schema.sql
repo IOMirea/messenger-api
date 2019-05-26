@@ -121,10 +121,7 @@ CREATE UNIQUE INDEX users_unique_email_index ON users(email);
 
 CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
 
-CREATE INDEX channel_settings_user_id_index ON channel_settings(user_id);
-
-CREATE INDEX channel_settings_channel_id_index ON channel_settings(channel_id);
-
+CREATE UNIQUE INDEX channel_settings_index ON channel_settings(user_id, channel_id);
 
 -- VIEWS --
 CREATE VIEW existing_messages AS
@@ -221,7 +218,11 @@ BEGIN
 	FOREACH i IN ARRAY sanitized_user_ids
 	LOOP
 		UPDATE users SET channel_ids = array_append(channel_ids, channel_id) WHERE id = i;
-	        INSERT INTO channel_settings (channel_id, user_id) VALUES (channel_id, i);
+		IF i = owner_id THEN
+			INSERT INTO channel_settings (channel_id, user_id, permissions) VALUES (channel_id, i, 65535::bit(16));
+		ELSE
+			INSERT INTO channel_settings (channel_id, user_id) VALUES (channel_id, i);
+		END IF;
 	END LOOP;
 
 	RETURN channel;
