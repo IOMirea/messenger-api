@@ -421,17 +421,28 @@ async def delete_message(req: web.Request) -> web.Response:
     channel_id = req["match_info"]["channel_id"]
     message_id = req["match_info"]["message_id"]
 
-    deleted = await req.config_dict["pg_conn"].fetchval(
-        f"SELECT * FROM delete_message($1, $2)", channel_id, message_id
+    message = await req.config_dict["pg_conn"].fetchrow(
+        f"SELECT {MESSAGE} FROM messages_with_author WHERE channel_id = $1 AND id = $2",
+        channel_id,
+        message_id,
     )
 
-    if not deleted:
+    if message is None:
         raise web.HTTPNotFound(reason="Unknown message")
 
-    req.config_dict["emitter"].emit(
-        events.MESSAGE_DELETE(
-            payload={"id": message_id, "channel_id": channel_id}
+    message_data = MESSAGE.to_json(message)
+
+    if int(message_data["author"]["id"]) != req["access_token"].user_id:
+        await helpers.ensure_permissions(
+            Permissions.DELETE_MESSAGES, request=req
         )
+
+    await req.config_dict["pg_conn"].fetch(
+        f"SELECT FROM delete_message($1, $2)", channel_id, message_id
+    )
+
+    req.config_dict["emitter"].emit(
+        events.MESSAGE_DELETE(payload=message_data)
     )
 
     raise web.HTTPNoContent()
