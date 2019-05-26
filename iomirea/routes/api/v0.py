@@ -53,23 +53,18 @@ async def create_channel(req: web.Request) -> web.Response:
 
     user_id = req["access_token"].user_id
 
-    recipients = set(query["recipients"] + [user_id])
+    recipients = set(query["recipients"])
 
     channel_id = req.config_dict["sf_gen"].gen_id()
 
     async with req.config_dict["pg_conn"].acquire() as conn:
         async with conn.transaction():
             channel = await conn.fetchrow(
-                f"INSERT INTO channels (id, owner_id, name, user_ids)"
-                f"VALUES ($1, $2, $3, $4) RETURNING {CHANNEL}",
+                f"SELECT {CHANNEL} FROM create_channel($1, $2, $3, $4)",
                 channel_id,
                 user_id,
                 query["name"],
                 recipients,
-            )
-
-            await conn.fetch(
-                "SELECT FROM add_channel_user($1, $2)", channel_id, user_id
             )
 
             message = await conn.fetchrow(

@@ -121,9 +121,9 @@ CREATE UNIQUE INDEX users_unique_email_index ON users(email);
 
 CREATE INDEX tokens_hmac_component_index ON tokens(hmac_component);
 
-CREATE INDEX channel_permissions_user_id_index ON channel_settings(user_id);
+CREATE INDEX channel_settings_user_id_index ON channel_settings(user_id);
 
-CREATE INDEX channel_permissions_channel_id_index ON channel_settings(channel_id);
+CREATE INDEX channel_settings_channel_id_index ON channel_settings(channel_id);
 
 
 -- VIEWS --
@@ -177,6 +177,57 @@ ALTER TABLE channels ADD CONSTRAINT channels_owner_id_fkey FOREIGN KEY (owner_id
 
 -- FUNCTIONS --
 
+CREATE FUNCTION create_channel(
+	channel_id BIGINT,
+	owner_id BIGINT,
+	name VARCHAR(128),
+	user_ids BIGINT[]
+) RETURNS channels
+AS $$
+DECLARE
+	channel channels;
+	sanitized_user_ids BIGINT[] := '{}';
+	i BIGINT;
+BEGIN
+	FOREACH i IN ARRAY user_ids
+	LOOP
+		IF i = ANY(sanitized_user_ids) THEN
+			CONTINUE;
+		END IF;
+		IF NOT (SELECT EXISTS(SELECT 1 FROM users WHERE id = i)) THEN
+			CONTINUE;
+		END IF;
+
+		sanitized_user_ids = array_append(sanitized_user_ids, i);
+	END LOOP;
+
+	-- owner id might be included by user
+	IF NOT (owner_id = ANY(sanitized_user_ids)) THEN
+		sanitized_user_ids = array_append(sanitized_user_ids, owner_id);
+	END IF;
+
+	INSERT INTO channels (
+		id,
+		owner_id,
+		name,
+		user_ids
+	) VALUES (
+		channel_id,
+		owner_id,
+		name,
+		sanitized_user_ids
+	) RETURNING * INTO channel;
+
+	FOREACH i IN ARRAY sanitized_user_ids
+	LOOP
+		UPDATE users SET channel_ids = array_append(channel_ids, channel_id) WHERE id = i;
+	        INSERT INTO channel_settings (channel_id, user_id) VALUES (channel_id, i);
+	END LOOP;
+
+	RETURN channel;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Warning: function does not perform access checks
 CREATE FUNCTION create_message(
 	mid BIGINT,
@@ -208,6 +259,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 CREATE FUNCTION delete_message(mid BIGINT) RETURNS BOOL
 AS $$
 DECLARE
@@ -230,7 +282,6 @@ BEGIN
 	END IF;
 
 	RETURN true;
-
 END;
 $$ LANGUAGE plpgsql;
 
@@ -256,7 +307,7 @@ BEGIN
 
         UPDATE users SET channel_ids = array_append(channel_ids, cid) WHERE id = uid;
         UPDATE channels SET user_ids = array_append(user_ids, uid) WHERE id = cid;
-	INSERT INTO channel_permissions (channel_id, user_id) VALUES (cid, uid);
+	INSERT INTO channel_settings (channel_id, user_id) VALUES (cid, uid);
 
         RETURN true;
 END;
@@ -284,7 +335,7 @@ BEGIN
 
         UPDATE users SET channel_ids = array_remove(channel_ids, cid) WHERE id = uid;
         UPDATE channels SET user_ids = array_remove(user_ids, uid) WHERE id = cid;
-	DELETE FROM channel_permissions WHERE channel_id = cid AND user_id = uid;
+	DELETE FROM channel_settings WHERE channel_id = cid AND user_id = uid;
 
         RETURN true;
 END;
@@ -336,7 +387,7 @@ BEGIN
 	END IF;
 
 	SELECT permissions INTO selected_perms
-	FROM channel_permissions
+	FROM channel_settings
 	WHERE channel_id = cid AND user_id = uid;
 
 	IF NOT FOUND THEN
