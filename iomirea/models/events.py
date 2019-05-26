@@ -88,19 +88,24 @@ class GlobalEvent(Event):
 
 class CHANNEL_UPDATE(LocalEvent):
     def _parse_payload(self) -> None:
-        self.channel_id = self._payload["id"]
+        self.channel_id = int(self._payload["id"])
 
 
 class MESSAGE_CREATE(LocalEvent):
     def _parse_payload(self) -> None:
-        self.channel_id = self._payload["channel_id"]
+        self.channel_id = int(self._payload["channel_id"])
 
 
 class MESSAGE_UPDATE(LocalEvent):
     def _parse_payload(self) -> None:
-        self.channel_id = self._payload["channel_id"]
+        self.channel_id = int(self._payload["channel_id"])
+
+
+class MESSAGE_DELETE(LocalEvent):
+    def _parse_payload(self) -> None:
+        self.channel_id = int(self._payload["channel_id"])
 
 
 class USER_UPDATE(OuterEvent):
     def _parse_payload(self) -> None:
-        self.user_id = self._payload["id"]
+        self.user_id = int(self._payload["id"])

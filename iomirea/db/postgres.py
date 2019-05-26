@@ -187,15 +187,17 @@ class IDObject:
 
         for k in self._keys:
             if _embedded is None:
-                value = record[k]
-
-                # convert all ids to strings
-                if (k == "id" or k.endswith("_id")) and value is not None:
-                    obj[k] = str(value)
-                else:
-                    obj[k] = value
+                key = k
             else:
-                obj[k] = record[f"_{_embedded}_{k}"]
+                key = f"_{_embedded}_{k}"
+
+            value = record[key]
+
+            # convert all ids to strings
+            if (k == "id" or k.endswith("_id")) and value is not None:
+                obj[k] = str(value)
+            else:
+                obj[k] = value
 
         for e_name, e_cls in self._embedded.items():
             obj[e_name] = e_cls.to_json(record, _embedded=e_name)
