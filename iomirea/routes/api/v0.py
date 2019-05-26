@@ -414,6 +414,29 @@ async def get_message(req: web.Request) -> web.Response:
     return web.json_response(MESSAGE.to_json(record))
 
 
+@routes.delete(endpoints_public.MESSAGE)
+@helpers.parse_token
+@access.channel
+async def delete_message(req: web.Request) -> web.Response:
+    channel_id = req["match_info"]["channel_id"]
+    message_id = req["match_info"]["message_id"]
+
+    deleted = await req.config_dict["pg_conn"].fetchval(
+        f"SELECT * FROM delete_message($1, $2)", channel_id, message_id
+    )
+
+    if not deleted:
+        raise web.HTTPNotFound(reason="Unknown message")
+
+    req.config_dict["emitter"].emit(
+        events.MESSAGE_DELETE(
+            payload={"id": message_id, "channel_id": channel_id}
+        )
+    )
+
+    raise web.HTTPNoContent()
+
+
 @routes.get(endpoints_public.MESSAGES)
 @helpers.parse_token
 @access.channel

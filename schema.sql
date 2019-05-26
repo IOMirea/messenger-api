@@ -62,11 +62,12 @@ CREATE TABLE messages (
 
 
 /* Permissions bits
- * 0:   modify channel
- * 1:   invite members
- * 2:   kick members
- * 3:   ban members
- * 4:   modify members
+ * 0    | 000000000000001 | modify channel
+ * 1    | 000000000000010 | invite members
+ * 2    | 000000000000100 | kick members
+ * 3    | 000000000001000 | ban members
+ * 4    | 000000000010000 | modify members
+ * 5    | 000000000100000 | delete messages
  */
 
 CREATE TABLE channel_settings (
@@ -219,9 +220,23 @@ BEGIN
 	LOOP
 		UPDATE users SET channel_ids = array_append(channel_ids, channel_id) WHERE id = i;
 		IF i = owner_id THEN
-			INSERT INTO channel_settings (channel_id, user_id, permissions) VALUES (channel_id, i, 65535::bit(16));
+			INSERT INTO channel_settings (
+				channel_id,
+				user_id,
+				permissions
+			) VALUES (
+				channel_id,
+				i,
+				65535::bit(16)
+			);
 		ELSE
-			INSERT INTO channel_settings (channel_id, user_id) VALUES (channel_id, i);
+			INSERT INTO channel_settings (
+				channel_id,
+				user_id
+			) VALUES (
+				channel_id,
+				i
+			);
 		END IF;
 	END LOOP;
 
@@ -260,17 +275,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE FUNCTION delete_message(mid BIGINT) RETURNS BOOL
+CREATE FUNCTION delete_message(
+	cid BIGINT,
+	mid BIGINT
+) RETURNS BOOL
 AS $$
 DECLARE
 	_pinned BOOL;
-	_channel_id BIGINT;
 BEGIN
 	DELETE FROM messages
-	WHERE id = mid
-	RETURNING pinned, channel_id
-	INTO _pinned, _channel_id;
+	WHERE id = mid AND channel_id = cid
+	RETURNING pinned
+	INTO _pinned;
 
 	IF NOT FOUND THEN
 		RETURN false;
@@ -279,7 +295,7 @@ BEGIN
 	IF _pinned THEN
 		UPDATE channels
 		SET pinned_ids = array_remove(pinned_ids, mid)
-		WHERE Id = _channel_id;
+		WHERE id = cid;
 	END IF;
 
 	RETURN true;

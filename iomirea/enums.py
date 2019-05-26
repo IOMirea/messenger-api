@@ -36,3 +36,4 @@ class Permissions(enum.Enum):
     KICK_MEMBERS = 4
     BAN_MEMBERS = 8
     MODIFY_MEMBERS = 16
+    DELETE_MESSAGES = 32
