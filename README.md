@@ -12,8 +12,8 @@ This repository contains code related to server side of the project.
 Current project website: https://iomirea.ml
 
 Other parts of the project can be found at:
-- https://github.com/Fogapod/IOMirea-server: server
-- https://github.com/Fogapod/IOMirea-client-android: Android client
+- https://github.com/IOMirea/IOMirea-server: server
+- https://github.com/IOMirea/IOMirea-client-android: Android client
 
 # IOMirea-server
 
@@ -29,7 +29,8 @@ Other parts of the project can be found at:
 
 ## Running server
 The latest version of IOMirea-server is hosted on https://iomirea.ml, you can run your own instance
-by installing all dependencies listed in the next section and launching `run.sh` script.  
+by installing all dependencies listed in the next section, creating `config/config.yaml` file from
+`config/config.yaml.example` template and launching `run.sh` script.  
 IOMirea-server runs under nginx as well, example nginx configuration files can be found [here](nginx)
 
 ## Documentation
@@ -54,8 +55,6 @@ IOMirea-server is built on top of [aiohttp](https://github.com/aio-libs/aiohttp)
 uses redis for caching and postgresql as primary database.
 
 Core requirements:
-- Configured and running [postgresql](https://www.postgresql.org) server with user `iomirea` and database `iomirea`
-- Installed [Redis server](https://redis.io)
 - [Python](https://python.org) v3.7+
 
 You can install these dependencies using your system package manager.
