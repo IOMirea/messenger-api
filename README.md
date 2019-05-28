@@ -1,6 +1,6 @@
 # IOMirea
 
-<img align="right" height="256" src=".github/media/logo256x256.png"/>
+<img align="right" height="256" src="https://github.com/IOMirea/IOMirea-server/blob/master/.github/media/logo256x256.png"/>
 
 IOMirea is a university project of messenger developed by 6 people.
 
@@ -72,4 +72,4 @@ pre-commit can be installed from `requirements-dev.txt` and enabled by running `
 inside project repository. black, flake8, mypy and other tools are used to format and validate code.
 
 ## License
-Source code is available under GPL v3.0 license, you can get it [here](LICENSE)
+Source code is available under GPL v3.0 license, you can get it [here](https://github.com/IOMirea/IOMirea-server/edit/master/LICENSE)
