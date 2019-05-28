@@ -31,7 +31,7 @@ Other parts of the project can be found at:
 The latest version of IOMirea-server is hosted on https://iomirea.ml, you can run your own instance
 by installing all dependencies listed in the next section, creating `config/config.yaml` file from
 `config/config.yaml.example` template and launching `run.sh` script.  
-IOMirea-server runs under nginx as well, example nginx configuration files can be found [here](nginx)
+IOMirea-server runs under nginx as well, example nginx configuration files can be found [here](https://github.com/IOMirea/IOMirea-server/edit/master/nginx)
 
 ## Documentation
 List of endpoints can be found at https://iomirea.ml/api/v0/endpoints
