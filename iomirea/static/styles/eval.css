@@ -22,7 +22,7 @@ body{
     user-select: none;
     height: inherit;
     width: inherit;
-    background-image: url("foxl.png");
+    background-image: url("/foxl.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size:cover;
@@ -30,7 +30,7 @@ body{
 
 #logo{
     right: 8%;
-    content:url("logo.png");
+    content:url("/logo.png");
     height: 80px;
 }
 
