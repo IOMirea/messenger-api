@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<meta charset="utf-8" />
-<html>
-	<head>
-		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-		<script language="javascript" type="text/javascript">
-     		$(function() {
+<html lang="en">
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1" />
+<link href="/eval.css" rel="stylesheet" type="text/css">
+<head>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script language="javascript" type="text/javascript">
+		$(function() {
 			var conn_status = 'Disconnected';
-                        var eval_status = 'Disconnected';
+			var eval_status = 'Disconnected';
 
-			var wsUri = (window.location.protocol=='https:'&&'wss://'||'ws://')+window.location.host+window.location.pathname;
+			var wsUri = (window.location.protocol==='https:'&&'wss://'||'ws://')+window.location.host+window.location.pathname;
 			var conn = new WebSocket(wsUri);
 
 			conn.onopen = function() {
@@ -101,21 +102,19 @@
 			});
 		});
 		</script>
-	</head>
-	<body>
-		<p id="connection_status">Connection status: unknown</p>
-		<p id="evaluation_status">Evaluation status: unknown</p>
-		<div>STDOUT:</div>
-		<div id="stdout"
-			style="height:15em;overflow:auto;border:1px solid black;white-space:pre"></div>
-		<div>RETURNED:</div>
-		<div id="returned"
-			style="height:10em;overflow:auto;border:1px solid black;white-space:pre"></div>
-		<p>Fast eval: shift+enter</p>
-		<form id="evalInputForm" onsubmit="return false;">
-			<textarea id="program" class="scrollabletextbox"
-				style="width:100%;height:15em"></textarea>
-			<input id="eval" type="button" value="Eval" />
-		</form>
+</head>
+<body>
+<span><p id="connection_status">Connection status: unknown</p>
+	<p id="evaluation_status">Evaluation status: unknown</p></span>
+<header>IOMirea<img id="logo" /></header>
+<p>STDOUT:</p>
+<div id="stdout"></div>
+<p>RETURNED:</p>
+<div id="returned"></div>
+<p>Fast eval: shift+enter</p>
+<form id="evalInputForm" onsubmit="return false;">
+	<textarea id="text"></textarea>
+	<input id="eval" type="button" value="Eval" />
+</form>
 </body>
 </html>
