@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 
+from pathlib import Path
+
 
 argparser = argparse.ArgumentParser(description="IOMirea server")
 
@@ -45,5 +47,11 @@ argparser.add_argument(
     help="enable static files support by server (works only in debug mode)",
 )
 
+argparser.add_argument(
+    "--config-file",
+    type=Path,
+    default=Path("/config/config.yaml"),
+    help="Path to the config file. Defaults to /config/config.yaml",
+)
 
 args = argparser.parse_args()

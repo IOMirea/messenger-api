@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     app["args"] = args
 
-    with open("config/config.yaml", "r") as f:
+    with open(app["args"].config_file, "r") as f:
         app["config"] = yaml.load(f, Loader=yaml.SafeLoader)
 
     app["sf_gen"] = SnowflakeGenerator(
