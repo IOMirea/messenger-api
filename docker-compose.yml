@@ -22,6 +22,7 @@ services:
 
   haproxy:
     image: haproxy:1.9-alpine
-    conatiner_name: haproxy
+    container_name: haproxy
+    network_mode: host
     volumes:
       - ./haproxy:/usr/local/etc/haproxy
