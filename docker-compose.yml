@@ -3,7 +3,7 @@ version: '3'
 services:
   registrator:
     image: gliderlabs/registrator
-    command: "consul://${MYHOST}:8500"
+    command: "consul://localhost:8500"
     container_name: registrator
     network_mode: host
     volumes:
@@ -19,3 +19,9 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt
     restart: unless-stopped
     network_mode: host
+
+  haproxy:
+    image: haproxy:1.9-alpine
+    conatiner_name: haproxy
+    volumes:
+      - ./haproxy:/usr/local/etc/haproxy

@@ -1,3 +1,0 @@
-upstream iomirea {
-	server localhost:8080 fail_timeout=0;
-}
