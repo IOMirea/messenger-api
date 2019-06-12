@@ -9,6 +9,8 @@ Dockerfile
 
 ### Configs ###
 **/*.json
-**/*.ya?ml
+**/*.yaml
+**/*.yml
+
 
 !config/config.yaml
