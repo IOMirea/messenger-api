@@ -121,21 +121,21 @@ def setup_logging(app: aiohttp.web.Application) -> None:
     access_stream_handler = logging.StreamHandler()
 
     # TODO: use separate file? (access-log-file)
-    access_file_handler = logging.FileHandler(
-        logging_path_base + log_config["common-log-file"]
-    )
+    # access_file_handler = logging.FileHandler(
+    #    logging_path_base + log_config["common-log-file"]
+    # )
 
-    common_file_handler = logging.FileHandler(
-        logging_path_base + log_config["common-log-file"]
-    )
+    # common_file_handler = logging.FileHandler(
+    #    logging_path_base + log_config["common-log-file"]
+    # )
 
-    server_file_handler = logging.FileHandler(
-        logging_path_base + log_config["server-log-file"]
-    )
+    # server_file_handler = logging.FileHandler(
+    #    logging_path_base + log_config["server-log-file"]
+    # )
 
-    server_error_file_handler = RequestErrorFileHandler(
-        logging_path_base + log_config["error-log-file"]
-    )
+    # server_error_file_handler = RequestErrorFileHandler(
+    #    logging_path_base + log_config["error-log-file"]
+    # )
 
     # set handler formatting
     access_log_format = log_config["basic-log-format"] + "{msg}"
@@ -148,13 +148,13 @@ def setup_logging(app: aiohttp.web.Application) -> None:
         )
     )
 
-    access_file_handler.setFormatter(
-        logging.Formatter(
-            access_log_format,
-            datefmt=log_config["basic-time-format"],
-            style="{",
-        )
-    )
+    # access_file_handler.setFormatter(
+    #    logging.Formatter(
+    #        access_log_format,
+    #        datefmt=log_config["basic-time-format"],
+    #        style="{",
+    #    )
+    # )
 
     stream_handler.setFormatter(
         logging.Formatter(
@@ -164,33 +164,33 @@ def setup_logging(app: aiohttp.web.Application) -> None:
         )
     )
 
-    common_file_handler.setFormatter(
-        logging.Formatter(
-            log_config["basic-log-format"] + "{msg}",
-            style="{",
-            datefmt=log_config["basic-time-format"],
-        )
-    )
+    # common_file_handler.setFormatter(
+    #    logging.Formatter(
+    #        log_config["basic-log-format"] + "{msg}",
+    #        style="{",
+    #        datefmt=log_config["basic-time-format"],
+    #    )
+    # )
 
-    server_file_handler.setFormatter(
-        logging.Formatter(
-            log_config["basic-log-format"] + "{msg}",
-            style="{",
-            datefmt=log_config["basic-time-format"],
-        )
-    )
+    # server_file_handler.setFormatter(
+    #    logging.Formatter(
+    #        log_config["basic-log-format"] + "{msg}",
+    #        style="{",
+    #        datefmt=log_config["basic-time-format"],
+    #    )
+    # )
 
     # apply handlers
     _access_log.addHandler(access_stream_handler)
-    _access_log.addHandler(access_file_handler)
+    # _access_log.addHandler(access_file_handler)
 
-    server_log.addHandler(common_file_handler)
-    server_log.addHandler(server_file_handler)
+    # server_log.addHandler(common_file_handler)
+    # server_log.addHandler(server_file_handler)
     server_log.addHandler(stream_handler)
-    server_log.addHandler(server_error_file_handler)
+    # server_log.addHandler(server_error_file_handler)
     server_log.addHandler(RequestErrorRepoter(app))
 
-    git_log.addHandler(common_file_handler)
+    # git_log.addHandler(common_file_handler)
     git_log.addHandler(stream_handler)
 
     # set levels

@@ -1,0 +1,14 @@
+### Git ###
+.git/
+.github/
+.gitignore
+
+### Docker ###
+.dockerignore
+Dockerfile
+
+### Configs ###
+**/*.json
+**/*.ya?ml
+
+!config/config.yaml

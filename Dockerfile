@@ -3,13 +3,25 @@ FROM python:3.7-alpine
 WORKDIR /code
 
 RUN apk add --no-cache \
-	build-base \
-	libffi-dev \
-	git
+	g++ \
+	make \
+	libffi-dev
 
-COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
-RUN rm /requirements.txt
+# avoid cache invalidation after copying entire directory
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apk del g++ make libffi-dev
+
+COPY . .
+COPY config /config
 
 EXPOSE 8080
-CMD ["python3.7", "iomirea/app.py"]
+
+RUN adduser -S iomirea
+RUN chown -R iomirea /code
+RUN chown -R iomirea /config
+USER iomirea
+
+CMD ["python", "iomirea/app.py"]
