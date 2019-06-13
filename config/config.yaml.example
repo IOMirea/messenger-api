@@ -1,4 +1,4 @@
-config-version: 6
+config-version: 7
 app:
   port: 8080
   host: localhost
@@ -35,3 +35,6 @@ redis:
 ssl:
   cert-chain-path: null
   cert-privkey-path: null
+updater:
+  host: localhost
+  port: 8081
