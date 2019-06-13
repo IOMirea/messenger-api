@@ -3,16 +3,21 @@ FROM python:3.7-alpine
 WORKDIR /code
 
 RUN apk add --no-cache \
-	g++ \
+	gcc \
 	make \
-	libffi-dev
+	libffi-dev \
+	musl-dev
 
 # avoid cache invalidation after copying entire directory
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apk del g++ make libffi-dev
+RUN apk del \
+	gcc \
+	make \
+	libffi-dev \
+	musl-dev
 
 COPY . .
 COPY config /config
