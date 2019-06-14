@@ -1,5 +1,5 @@
 """
-IOMirea-server - A server for IOMirea messenger
+IOMirea-API - API for IOMirea messenger
 Copyright (C) 2019  Eugene Ershov
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import os
 import logging
 import traceback
@@ -31,7 +30,6 @@ from reporter import send_report
 
 
 # public
-git_log = logging.getLogger("git")
 server_log = logging.getLogger("server")
 
 # internal
@@ -190,10 +188,6 @@ def setup_logging(app: aiohttp.web.Application) -> None:
     # server_log.addHandler(server_error_file_handler)
     server_log.addHandler(RequestErrorRepoter(app))
 
-    # git_log.addHandler(common_file_handler)
-    git_log.addHandler(stream_handler)
-
     # set levels
     _access_log.setLevel(logging.INFO)
     server_log.setLevel(logging.DEBUG if app["args"].debug else logging.INFO)
-    git_log.setLevel(logging.INFO)
