@@ -1,5 +1,8 @@
 FROM python:3.7-alpine
 
+ARG UID=1000
+ARG GID=1000
+
 WORKDIR /code
 
 RUN apk add --no-cache \
@@ -24,9 +27,10 @@ COPY config /config
 
 EXPOSE 8080
 
-RUN adduser -S iomirea
-RUN chown -R iomirea /code
-RUN chown -R iomirea /config
-USER iomirea
+RUN addgroup -g $GID -S iomirea && \
+    adduser -u $UID -S api -G iomirea
+RUN chown -R api:iomirea /code
+RUN chown -R api:iomirea /config
+USER api
 
 CMD ["python", "iomirea/app.py"]
