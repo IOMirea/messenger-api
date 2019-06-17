@@ -37,4 +37,4 @@ RUN chown -R api:iomirea /code
 RUN chown -R api:iomirea /config
 USER api
 
-CMD python iomirea/app.py --port=$PORT
+CMD python iomirea/app.py --port=$PORT --host=0.0.0.0
