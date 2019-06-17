@@ -164,7 +164,7 @@ if __name__ == "__main__":
     web.run_app(
         app,
         access_log_class=AccessLogger,
-        port=app["config"]["app"]["port"],
         ssl_context=ssl_context,
-        host=app["config"]["app"]["host"],
+        host=app["args"].host,
+        port=app["args"].port,
     )

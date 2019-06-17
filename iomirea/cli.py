@@ -24,7 +24,10 @@ from pathlib import Path
 argparser = argparse.ArgumentParser(description="IOMirea server")
 
 argparser.add_argument(
-    "-d", "--debug", action="store_true", help="run server in debug mode"
+    "-D",
+    "--debug",
+    action="store_true",
+    help="run server in debug mode"
 )
 
 argparser.add_argument(
@@ -34,21 +37,33 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "-e",
+    "-E",
     "--with-eval",
     action="store_true",
     help="enable python eval endpoint (works only in debug mode)",
 )
 
 argparser.add_argument(
-    "-s",
+    "-S",
     "--with-static",
     action="store_true",
     help="enable static files support by server (works only in debug mode)",
 )
 
 argparser.add_argument(
-    "--config-file",
+    "-H", "--host",
+    default="127.0.0.1",
+    help="Host to run API on. Defaults to 127.0.0.1",
+)
+
+argparser.add_argument(
+    "-P", "--port",
+    default="8080",
+    help="Port to run API on. Defaults to 8080",
+)
+
+argparser.add_argument(
+    "-C", "--config-file",
     type=Path,
     default=Path("/config/config.yaml"),
     help="Path to the config file. Defaults to /config/config.yaml",

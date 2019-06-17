@@ -3,6 +3,10 @@ FROM python:3.7-alpine
 ARG UID=1000
 ARG GID=1000
 
+ARG PORT=8080
+# workaround for CMD not being able to parse variable at build time
+ENV PORT ${PORT}
+
 WORKDIR /code
 
 RUN apk add --no-cache \
@@ -25,7 +29,7 @@ RUN apk del \
 COPY . .
 COPY config /config
 
-EXPOSE 8080
+EXPOSE ${PORT}
 
 RUN addgroup -g $GID -S iomirea && \
     adduser -u $UID -S api -G iomirea
@@ -33,4 +37,4 @@ RUN chown -R api:iomirea /code
 RUN chown -R api:iomirea /config
 USER api
 
-CMD ["python", "iomirea/app.py"]
+CMD python iomirea/app.py --port=$PORT

@@ -1,7 +1,4 @@
-config-version: 7
-app:
-  port: 8080
-  host: localhost
+config-version: 8
 error-reporter:
   smtp:
     host: null
@@ -35,6 +32,3 @@ redis:
 ssl:
   cert-chain-path: null
   cert-privkey-path: null
-updater:
-  host: localhost
-  port: 8081
