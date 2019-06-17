@@ -1,7 +1,7 @@
 FROM python:3.7-alpine
 
-ARG UID=1000
-ARG GID=1000
+ARG UID=1500
+ARG GID=1500
 
 ARG PORT=8080
 # workaround for CMD not being able to parse variable at build time
