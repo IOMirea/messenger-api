@@ -7,6 +7,9 @@ ARG PORT=8080
 # workaround for CMD not being able to parse variable at build time
 ENV PORT ${PORT}
 
+# enables propper stdout flushing
+ENV PYTHONUNBUFFERED 1
+
 WORKDIR /code
 
 RUN apk add --no-cache \
