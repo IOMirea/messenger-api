@@ -16,7 +16,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
 import json
+import signal
 
 from typing import (
     Iterable,
@@ -255,3 +257,8 @@ def parse_token(endpoint: _Handler) -> _Handler:
 
 def redirect(req: web.Request, router_name: str) -> NoReturn:
     raise web.HTTPFound(req.app.router[router_name].url_for())
+
+
+def clean_exit() -> None:
+    # avoid traceback
+    os.kill(os.getpid(), signal.SIGINT)
