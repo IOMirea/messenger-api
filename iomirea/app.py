@@ -34,6 +34,7 @@ from aiohttp import web
 import middlewares
 
 from cli import args
+from rpc import init_rpc, stop_rpc
 from routes.api.v0 import routes as api_v0_routes
 from routes.websocket import routes as ws_routes
 from routes.auth import routes as auth_routes
@@ -60,6 +61,8 @@ else:
 
 
 async def on_startup(app: web.Application) -> None:
+    await init_rpc(app)
+
     aiohttp_jinja2.setup(
         app, loader=jinja2.FileSystemLoader("iomirea/templates")
     )
@@ -73,6 +76,10 @@ async def on_startup(app: web.Application) -> None:
     )
 
     await EventEmitter.setup_emitter(app)
+
+
+async def on_cleanup(app: web.Application) -> None:
+    await stop_rpc(app)
 
 
 if __name__ == "__main__":
@@ -94,6 +101,7 @@ if __name__ == "__main__":
 
     app.on_cleanup.append(close_postgres_connection)
     app.on_cleanup.append(close_redis_pool)
+    app.on_cleanup.append(on_cleanup)
 
     app.router.add_routes(ws_routes)
     app.router.add_routes(auth_routes)

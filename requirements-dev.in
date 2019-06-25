@@ -8,6 +8,7 @@ aiohttp_jinja2
 aiohttp_remotes
 bcrypt
 aiohttp_session[aioredis]
+git+git://github.com/IOMirea/rpc@v0.1.0#egg=iomirea_rpc
 
 pre-commit
 pip-tools

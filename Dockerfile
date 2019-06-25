@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /code
 
 RUN apk add --no-cache \
+	git \
 	gcc \
 	make \
 	libffi-dev \
@@ -24,6 +25,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN apk del \
+	git \
 	gcc \
 	make \
 	libffi-dev \
