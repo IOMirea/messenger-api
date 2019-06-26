@@ -57,12 +57,11 @@ async def init_rpc(app: web.Application) -> None:
     )
     app["rpc_server"] = Server("api", loop=app.loop, node=node)
 
-    await app["rpc_server"].run((host, port), **config)
+    app.loop.create_task(app["rpc_server"].run((host, port), **config))
 
     app["rpc_server"].register_command(RPC_COMMAND_RESTART_API, restart_api)
     app["rpc_server"].register_command(RPC_COMMAND_EVAL_API, eval_api)
 
 
 async def stop_rpc(app: web.Application) -> None:
-    # await app["rpc_server"].stop()
-    pass
+    app["rpc_server"].close()

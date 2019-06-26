@@ -8,4 +8,4 @@ aiohttp_jinja2
 aiohttp_remotes
 bcrypt
 aiohttp_session[aioredis]
-git+git://github.com/IOMirea/rpc@v0.1.0#egg=iomirea_rpc
+git+git://github.com/IOMirea/rpc@v0.1.1#egg=iomirea_rpc
