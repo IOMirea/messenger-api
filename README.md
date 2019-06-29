@@ -1,6 +1,6 @@
 # IOMirea
 
-<img align="right" height="256" src="https://github.com/IOMirea/IOMirea-server/blob/master/.github/media/logo256x256.png"/>
+<img align="right" height="256" src="https://github.com/IOMirea/api/blob/master/.github/media/logo256x256.png"/>
 
 IOMirea is a university project of messenger developed by 6 people.
 
@@ -12,8 +12,8 @@ This repository contains code related to server side of the project.
 Current project website: https://iomirea.ml
 
 Other parts of the project can be found at:
-- https://github.com/IOMirea/IOMirea-server: server
-- https://github.com/IOMirea/IOMirea-client-android: Android client
+- https://github.com/IOMirea/api: api
+- https://github.com/IOMirea/client-android: Android client
 
 # IOMirea-server
 
@@ -28,10 +28,11 @@ Other parts of the project can be found at:
 - Web interface (planned, currently only registration, login and oauth2 related pages are implemented)
 
 ## Running server
+#### Warning: this section might be outdated after migration to docker
 The latest version of IOMirea-server is hosted on https://iomirea.ml, you can run your own instance
 by installing all dependencies listed in the next section, creating `config/config.yaml` file from
 `config/config.yaml.example` template and launching `run.sh` script.  
-IOMirea-server runs under nginx as well, example nginx configuration files can be found [here](https://github.com/IOMirea/IOMirea-server/edit/master/nginx)
+IOMirea-server runs under nginx as well, example nginx configuration files can be found [here](https://github.com/IOMirea/api/blob/master/nginx)
 
 ## Documentation
 List of endpoints can be found at https://iomirea.ml/api/v0/endpoints
@@ -72,4 +73,4 @@ pre-commit can be installed from `requirements-dev.txt` and enabled by running `
 inside project repository. black, flake8, mypy and other tools are used to format and validate code.
 
 ## License
-Source code is available under GPL v3.0 license, you can get it [here](https://github.com/IOMirea/IOMirea-server/edit/master/LICENSE)
+Source code is available under GPL v3.0 license, you can get it [here](https://github.com/IOMirea/api/blob/master/LICENSE).
