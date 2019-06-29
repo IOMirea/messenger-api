@@ -24,7 +24,7 @@ hiredis==1.0.0            # via aioredis
 identify==1.4.0           # via pre-commit
 idna==2.8                 # via yarl
 importlib-metadata==0.8   # via pre-commit
-git+git://github.com/IOMirea/rpc@v0.1.1#egg=iomirea_rpc
+git+git://github.com/IOMirea/rpc@v0.2.0#egg=iomirea_rpc
 jinja2==2.10.1
 markupsafe==1.1.1         # via jinja2
 multidict==4.5.2          # via aiohttp, yarl

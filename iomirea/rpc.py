@@ -21,7 +21,7 @@ import os
 from copy import copy
 
 from aiohttp import web
-from iomirea_rpc import Server
+from iomirea_rpc import Server, Request
 
 from utils.helpers import clean_exit
 
@@ -39,11 +39,11 @@ RPC_COMMAND_EVAL_UPDATER = 301
 RPC_COMMAND_EVAL_API = 302
 
 
-async def restart_api(srv: Server, address: str) -> None:
+async def restart_api(srv: Server, req: Request) -> None:
     clean_exit()
 
 
-async def eval_api(srv: Server, address: str, code: str) -> None:
+async def eval_api(srv: Server, req: Request, code: str) -> None:
     await srv.respond(address, "Eval is not implemented yet")
 
 
