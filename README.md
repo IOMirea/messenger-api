@@ -12,8 +12,8 @@ This repository contains code related to server side of the project.
 Current project website: https://iomirea.ml
 
 Other parts of the project can be found at:
-- https://github.com/IOMirea/api: api
-- https://github.com/IOMirea/client-android: Android client
+- https://github.com/IOMirea/messenger-api: api
+- https://github.com/IOMirea/messenger-client-android: Android client
 
 # IOMirea-server
 
