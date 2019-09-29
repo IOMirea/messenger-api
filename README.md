@@ -15,7 +15,7 @@ Other parts of the project can be found at:
 - https://github.com/IOMirea/messenger-api: api
 - https://github.com/IOMirea/messenger-client-android: Android client
 
-# IOMirea-server
+# messenger-api
 
 ## Key features
 - RESTful API
