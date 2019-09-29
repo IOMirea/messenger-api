@@ -1,8 +1,8 @@
-# IOMirea
+# IOMirea-messenger
 
 <img align="right" height="256" src="https://github.com/IOMirea/api/blob/master/.github/media/logo256x256.png"/>
 
-IOMirea is a university project of messenger developed by 6 people.
+IOMirea-messenger is a university project of messenger developed by 6 people.
 
 We were inspired by [Discord](https://discordapp.com), [Telegram](https://telegram.org),
 [VKontakte](https://vk.com) and many other messenging platforms.
